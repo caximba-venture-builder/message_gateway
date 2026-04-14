@@ -1,5 +1,6 @@
 class AudioTranscriptionService
   class TranscriptionError < StandardError; end
+  class InvalidAudioError < TranscriptionError; end
 
   def self.call(audio_url:, mimetype: "audio/ogg")
     new(audio_url: audio_url, mimetype: mimetype).call
@@ -37,6 +38,9 @@ class AudioTranscriptionService
 
     tempfile.write(response.body)
     tempfile.rewind
+
+    raise InvalidAudioError, "Downloaded audio file is empty" if tempfile.size.zero?
+
     tempfile
   end
 
@@ -52,6 +56,9 @@ class AudioTranscriptionService
 
     raise TranscriptionError, "Transcription failed: #{response}" unless response["text"].present?
     response
+  rescue Faraday::BadRequestError => e
+    body = e.response&.dig(:body) || e.message
+    raise InvalidAudioError, "OpenAI rejected the audio (400): #{body}"
   end
 
   def transcription_model
