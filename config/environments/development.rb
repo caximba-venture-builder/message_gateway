@@ -64,4 +64,8 @@ Rails.application.configure do
 
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
+
+  config.logger = ActiveSupport::Logger.new($stdout)
+  config.logger.formatter = config.log_formatter
+  config.log_level = :debug
 end
