@@ -6,14 +6,14 @@ RSpec.describe ProcessedMessagePublisher do
 
   describe "#publish" do
     let(:mock_channel) { instance_double(Bunny::Channel, close: nil) }
-    let(:mock_queue) { instance_double(Bunny::Queue) }
+    let(:mock_exchange) { instance_double(Bunny::Exchange) }
 
     before do
       allow(RabbitMq::Connection).to receive(:instance).and_return(
         instance_double(Bunny::Session, create_channel: mock_channel)
       )
-      allow(mock_channel).to receive(:queue).and_return(mock_queue)
-      allow(mock_queue).to receive(:publish)
+      allow(mock_channel).to receive(:default_exchange).and_return(mock_exchange)
+      allow(mock_exchange).to receive(:publish)
       allow(ENV).to receive(:fetch).and_call_original
       allow(ENV).to receive(:fetch).with("PROCESSED_MESSAGES_QUEUE").and_return("test.processed")
     end
@@ -21,7 +21,10 @@ RSpec.describe ProcessedMessagePublisher do
     it "publishes to the PROCESSED_MESSAGES_QUEUE" do
       publisher.publish(sender: sender, text: "Hello world")
 
-      expect(mock_channel).to have_received(:queue).with("test.processed", durable: true)
+      expect(mock_exchange).to have_received(:publish).with(
+        anything,
+        hash_including(routing_key: "test.processed")
+      )
     end
 
     it "publishes the correct payload format" do
@@ -34,8 +37,9 @@ RSpec.describe ProcessedMessagePublisher do
         name: "João"
       }.to_json
 
-      expect(mock_queue).to have_received(:publish).with(
+      expect(mock_exchange).to have_received(:publish).with(
         expected_payload,
+        routing_key: "test.processed",
         persistent: true,
         content_type: "application/json"
       )

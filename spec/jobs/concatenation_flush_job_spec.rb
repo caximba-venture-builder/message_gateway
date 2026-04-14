@@ -3,14 +3,14 @@ require "rails_helper"
 RSpec.describe ConcatenationFlushJob, type: :job do
   let(:sender) { create(:sender, phone_number: "5511999999999", push_name: "João") }
   let(:mock_channel) { instance_double(Bunny::Channel, close: nil) }
-  let(:mock_queue) { instance_double(Bunny::Queue) }
+  let(:mock_exchange) { instance_double(Bunny::Exchange) }
 
   before do
     allow(RabbitMq::Connection).to receive(:instance).and_return(
       instance_double(Bunny::Session, create_channel: mock_channel)
     )
-    allow(mock_channel).to receive(:queue).and_return(mock_queue)
-    allow(mock_queue).to receive(:publish)
+    allow(mock_channel).to receive(:default_exchange).and_return(mock_exchange)
+    allow(mock_exchange).to receive(:publish)
     allow(ENV).to receive(:fetch).and_call_original
     allow(ENV).to receive(:fetch).with("PROCESSED_MESSAGES_QUEUE").and_return("test.processed")
   end
@@ -33,7 +33,7 @@ RSpec.describe ConcatenationFlushJob, type: :job do
           expected_expires_at: buffer.expires_at.iso8601(6)
         )
 
-        expect(mock_queue).to have_received(:publish)
+        expect(mock_exchange).to have_received(:publish)
       end
 
       it "destroys the buffer after flushing" do
@@ -58,8 +58,9 @@ RSpec.describe ConcatenationFlushJob, type: :job do
           name: "João"
         }.to_json
 
-        expect(mock_queue).to have_received(:publish).with(
+        expect(mock_exchange).to have_received(:publish).with(
           expected,
+          routing_key: "test.processed",
           persistent: true,
           content_type: "application/json"
         )
@@ -82,7 +83,7 @@ RSpec.describe ConcatenationFlushJob, type: :job do
           expected_expires_at: Time.current.iso8601(6)
         )
 
-        expect(mock_queue).not_to have_received(:publish)
+        expect(mock_exchange).not_to have_received(:publish)
       end
     end
 
@@ -105,7 +106,7 @@ RSpec.describe ConcatenationFlushJob, type: :job do
           expected_expires_at: old_expires_at
         )
 
-        expect(mock_queue).not_to have_received(:publish)
+        expect(mock_exchange).not_to have_received(:publish)
         expect(ConcatenationBuffer.find_by(id: buffer.id)).to be_present
       end
     end
@@ -127,7 +128,7 @@ RSpec.describe ConcatenationFlushJob, type: :job do
             buffer_id: buffer.id,
             expected_expires_at: buffer.expires_at.iso8601(6)
           )
-        }.to have_enqueued_job(ConcatenationFlushJob)
+        }.to have_enqueued_job(described_class)
       end
 
       it "does not publish yet" do
@@ -136,7 +137,7 @@ RSpec.describe ConcatenationFlushJob, type: :job do
           expected_expires_at: buffer.expires_at.iso8601(6)
         )
 
-        expect(mock_queue).not_to have_received(:publish)
+        expect(mock_exchange).not_to have_received(:publish)
       end
     end
 

@@ -5,14 +5,14 @@ RSpec.describe DeadLetterPublisher do
 
   describe "#publish" do
     let(:mock_channel) { instance_double(Bunny::Channel, close: nil) }
-    let(:mock_queue) { instance_double(Bunny::Queue) }
+    let(:mock_exchange) { instance_double(Bunny::Exchange) }
 
     before do
       allow(RabbitMq::Connection).to receive(:instance).and_return(
         instance_double(Bunny::Session, create_channel: mock_channel)
       )
-      allow(mock_channel).to receive(:queue).and_return(mock_queue)
-      allow(mock_queue).to receive(:publish)
+      allow(mock_channel).to receive(:default_exchange).and_return(mock_exchange)
+      allow(mock_exchange).to receive(:publish)
     end
 
     it "publishes to the DLQ with .dlq suffix" do
@@ -23,7 +23,10 @@ RSpec.describe DeadLetterPublisher do
         error_message: "Something failed"
       )
 
-      expect(mock_channel).to have_received(:queue).with("my-bot.messages.upsert.dlq", durable: true)
+      expect(mock_exchange).to have_received(:publish).with(
+        anything,
+        hash_including(routing_key: "my-bot.messages.upsert.dlq")
+      )
     end
 
     it "includes error metadata in the payload" do
@@ -43,8 +46,9 @@ RSpec.describe DeadLetterPublisher do
           source_queue: "my-bot.messages.upsert"
         }.to_json
 
-        expect(mock_queue).to have_received(:publish).with(
+        expect(mock_exchange).to have_received(:publish).with(
           expected,
+          routing_key: "my-bot.messages.upsert.dlq",
           persistent: true,
           content_type: "application/json"
         )
@@ -59,7 +63,7 @@ RSpec.describe DeadLetterPublisher do
         error_message: "Parse error"
       )
 
-      expect(mock_queue).to have_received(:publish)
+      expect(mock_exchange).to have_received(:publish)
     end
   end
 end

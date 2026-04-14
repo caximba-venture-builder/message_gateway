@@ -4,7 +4,7 @@ RSpec.describe AudioTranscriptionJob, type: :job do
   let(:sender) { create(:sender) }
   let(:message) { create(:message, :audio, sender: sender, whatsapp_message_id: "3EB0TEST123") }
   let(:mock_channel) { instance_double(Bunny::Channel, close: nil) }
-  let(:mock_queue) { instance_double(Bunny::Queue) }
+  let(:mock_exchange) { instance_double(Bunny::Exchange) }
 
   before do
     message # ensure message exists before job runs
@@ -12,8 +12,8 @@ RSpec.describe AudioTranscriptionJob, type: :job do
     allow(RabbitMq::Connection).to receive(:instance).and_return(
       instance_double(Bunny::Session, create_channel: mock_channel)
     )
-    allow(mock_channel).to receive(:queue).and_return(mock_queue)
-    allow(mock_queue).to receive(:publish)
+    allow(mock_channel).to receive(:default_exchange).and_return(mock_exchange)
+    allow(mock_exchange).to receive(:publish)
     allow(ENV).to receive(:fetch).and_call_original
     allow(ENV).to receive(:fetch).with("PROCESSED_MESSAGES_QUEUE").and_return("test.processed")
 
@@ -67,7 +67,7 @@ RSpec.describe AudioTranscriptionJob, type: :job do
         whatsapp_message_id: "3EB0TEST123"
       )
 
-      expect(mock_queue).to have_received(:publish)
+      expect(mock_exchange).to have_received(:publish)
     end
 
     context "when message record does not exist yet" do
@@ -82,7 +82,7 @@ RSpec.describe AudioTranscriptionJob, type: :job do
           )
         }.not_to change(TokenUsage, :count)
 
-        expect(mock_queue).to have_received(:publish)
+        expect(mock_exchange).to have_received(:publish)
       end
     end
   end
