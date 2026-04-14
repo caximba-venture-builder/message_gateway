@@ -31,6 +31,7 @@ class MessageParser
       audio_url: extract_audio_url,
       audio_mimetype: data.dig(:message, :audioMessage, :mimetype),
       audio_file_length: data.dig(:message, :audioMessage, :fileLength),
+      audio_message: extract_audio_message,
       raw_payload: @payload
     )
   end
@@ -53,6 +54,11 @@ class MessageParser
   def extract_audio_url
     return nil unless data[:messageType] == "audioMessage"
     data.dig(:message, :audioMessage, :url)
+  end
+
+  def extract_audio_message
+    return nil unless data[:messageType] == "audioMessage"
+    data[:message]&.deep_stringify_keys
   end
 
   def validate!

@@ -78,7 +78,7 @@ RSpec.describe MessageParser do
 
       it "extracts audio_url" do
         result = described_class.call(payload)
-        expect(result.audio_url).to eq("https://mmg.whatsapp.net/v/t62.7114-24/audio.ogg")
+        expect(result.audio_url).to eq("https://mmg.whatsapp.net/v/t62.7114-24/audio.enc")
       end
 
       it "extracts audio_mimetype" do

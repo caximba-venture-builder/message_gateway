@@ -16,6 +16,7 @@ module ValueObjects
     :audio_url,
     :audio_mimetype,
     :audio_file_length,
+    :audio_message,
     :raw_payload
   )
 end

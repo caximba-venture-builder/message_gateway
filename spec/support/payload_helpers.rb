@@ -41,7 +41,7 @@ module PayloadHelpers
         "status" => "DELIVERY_ACK",
         "message" => {
           "audioMessage" => {
-            "url" => "https://mmg.whatsapp.net/v/t62.7114-24/audio.ogg",
+            "url" => "https://mmg.whatsapp.net/v/t62.7114-24/audio.enc",
             "mimetype" => "audio/ogg; codecs=opus",
             "fileSha256" => "base64-encoded-sha256",
             "fileLength" => 15230,
@@ -49,7 +49,7 @@ module PayloadHelpers
             "ptt" => true,
             "mediaKey" => "base64-encoded-media-key",
             "fileEncSha256" => "base64-encoded-enc-sha256",
-            "directPath" => "/v/t62.7114-24/audio.ogg",
+            "directPath" => "/v/t62.7114-24/audio.enc",
             "mediaKeyTimestamp" => 1713105200,
             "waveform" => "base64-encoded-waveform-data"
           }
