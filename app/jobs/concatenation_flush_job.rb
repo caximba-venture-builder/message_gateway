@@ -21,23 +21,30 @@ class ConcatenationFlushJob < ApplicationJob
     end
 
     flush(buffer)
+  rescue ActiveRecord::RecordNotFound
+    # Buffer was already flushed and destroyed by a concurrent worker — safe to ignore.
+    nil
   end
 
   private
 
   def flush(buffer)
-    sender = buffer.sender
+    buffer.with_lock do
+      return if buffer.expires_at > Time.current
 
-    ProcessedMessagePublisher.publish(
-      sender: sender,
-      text: buffer.accumulated_text
-    )
+      sender = buffer.sender
 
-    Rails.logger.info(
-      "[ConcatenationFlush] Flushed #{buffer.message_count} messages " \
-      "for sender=#{sender.id}, instance=#{buffer.instance_name}"
-    )
+      ProcessedMessagePublisher.publish(
+        sender: sender,
+        text: buffer.accumulated_text
+      )
 
-    buffer.destroy!
+      Rails.logger.info(
+        "[ConcatenationFlush] Flushed #{buffer.message_count} messages " \
+        "for sender=#{sender.id}, instance=#{buffer.instance_name}"
+      )
+
+      buffer.destroy!
+    end
   end
 end
