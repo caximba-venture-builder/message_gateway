@@ -35,9 +35,11 @@ class AudioTranscriptionService
     tempfile.binmode
 
     response = fetch_with_redirects(URI.parse(@audio_url))
+    content_type = response["content-type"].to_s
+    Rails.logger.info("[AudioTranscriptionService] Download response: HTTP #{response.code}, content-type: #{content_type}, body size: #{response.body.bytesize} bytes")
+
     raise TranscriptionError, "Audio download failed: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
-    content_type = response["content-type"].to_s
     if content_type.include?("text/html") || content_type.include?("application/json")
       raise InvalidAudioError, "Audio URL returned non-audio content (#{content_type}). URL may have expired or require authentication."
     end
@@ -45,7 +47,6 @@ class AudioTranscriptionService
     tempfile.write(response.body)
     tempfile.rewind
 
-    Rails.logger.info("[AudioTranscriptionService] Downloaded #{tempfile.size} bytes (#{content_type}) from #{@audio_url}")
     raise InvalidAudioError, "Downloaded audio file is empty" if tempfile.size.zero?
 
     tempfile
