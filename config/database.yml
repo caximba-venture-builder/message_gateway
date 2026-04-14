@@ -7,7 +7,7 @@ default: &default
     synchronous: normal
     mmap_size: 134217728
     cache_size: -65536
-    busy_timeout: 5000
+    busy_timeout: 10000
 
 development:
   primary:
