@@ -2,17 +2,17 @@ class AudioTranscriptionService
   class TranscriptionError < StandardError; end
   class InvalidAudioError < TranscriptionError; end
 
-  def self.call(audio_url:, mimetype: "audio/ogg")
-    new(audio_url: audio_url, mimetype: mimetype).call
+  def self.call(base64:, mimetype: "audio/ogg")
+    new(base64: base64, mimetype: mimetype).call
   end
 
-  def initialize(audio_url:, mimetype:)
-    @audio_url = audio_url
+  def initialize(base64:, mimetype:)
+    @base64 = base64
     @mimetype = mimetype
   end
 
   def call
-    tempfile = download_audio
+    tempfile = build_tempfile
     response = transcribe(tempfile)
 
     {
@@ -27,46 +27,15 @@ class AudioTranscriptionService
 
   private
 
-  MAX_REDIRECTS = 5
+  def build_tempfile
+    audio_data = Base64.decode64(@base64)
+    raise InvalidAudioError, "Decoded audio data is empty" if audio_data.empty?
 
-  def download_audio
-    extension = resolve_extension
-    tempfile = Tempfile.new([ "whisper_audio", extension ])
+    tempfile = Tempfile.new([ "whisper_audio", resolve_extension ])
     tempfile.binmode
-
-    response = fetch_with_redirects(URI.parse(@audio_url))
-    content_type = response["content-type"].to_s
-    Rails.logger.info("[AudioTranscriptionService] Download response: HTTP #{response.code}, content-type: #{content_type}, body size: #{response.body.bytesize} bytes")
-
-    raise TranscriptionError, "Audio download failed: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
-
-    if content_type.include?("text/html") || content_type.include?("application/json")
-      raise InvalidAudioError, "Audio URL returned non-audio content (#{content_type}). URL may have expired or require authentication."
-    end
-
-    tempfile.write(response.body)
+    tempfile.write(audio_data)
     tempfile.rewind
-
-    raise InvalidAudioError, "Downloaded audio file is empty" if tempfile.size.zero?
-
     tempfile
-  end
-
-  def fetch_with_redirects(uri, redirects_remaining = MAX_REDIRECTS)
-    raise TranscriptionError, "Too many redirects downloading audio" if redirects_remaining.zero?
-
-    response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https",
-                                open_timeout: 10, read_timeout: 30) do |http|
-      http.get(uri.request_uri)
-    end
-
-    if response.is_a?(Net::HTTPRedirection)
-      location = URI.parse(response["location"])
-      location = uri + location if location.relative?
-      fetch_with_redirects(location, redirects_remaining - 1)
-    else
-      response
-    end
   end
 
   def transcribe(tempfile)

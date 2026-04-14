@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe AudioTranscriptionService do
-  let(:audio_url) { "https://mmg.whatsapp.net/v/t62.7114-24/audio.ogg" }
-  let(:audio_body) { "fake audio content" }
+  let(:audio_base64) { Base64.strict_encode64("fake ogg audio content") }
 
   before do
     allow(ENV).to receive(:fetch).and_call_original
@@ -14,9 +13,6 @@ RSpec.describe AudioTranscriptionService do
   describe ".call" do
     context "with a successful transcription" do
       before do
-        stub_request(:get, audio_url)
-          .to_return(status: 200, body: audio_body)
-
         stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
           .to_return(
             status: 200,
@@ -26,62 +22,48 @@ RSpec.describe AudioTranscriptionService do
       end
 
       it "returns the transcribed text" do
-        result = described_class.call(audio_url: audio_url)
+        result = described_class.call(base64: audio_base64)
         expect(result[:text]).to eq("Olá, como vai?")
       end
 
       it "estimates token count when not provided by API" do
-        result = described_class.call(audio_url: audio_url)
+        result = described_class.call(base64: audio_base64)
         expect(result[:tokens_used]).to be_a(Integer)
         expect(result[:tokens_used]).to be > 0
       end
 
       it "returns the model name" do
-        result = described_class.call(audio_url: audio_url)
+        result = described_class.call(base64: audio_base64)
         expect(result[:model]).to eq("whisper-1")
       end
     end
 
     context "with token usage from API" do
       before do
-        stub_request(:get, audio_url)
-          .to_return(status: 200, body: audio_body)
-
         stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
           .to_return(
             status: 200,
-            body: {
-              "text" => "Hello",
-              "usage" => { "total_tokens" => 42 }
-            }.to_json,
+            body: { "text" => "Hello", "usage" => { "total_tokens" => 42 } }.to_json,
             headers: { "Content-Type" => "application/json" }
           )
       end
 
       it "uses the API-provided token count" do
-        result = described_class.call(audio_url: audio_url)
+        result = described_class.call(base64: audio_base64)
         expect(result[:tokens_used]).to eq(42)
       end
     end
 
-    context "when audio download fails" do
-      before do
-        stub_request(:get, audio_url)
-          .to_return(status: 404, body: "Not Found")
-      end
-
-      it "raises TranscriptionError" do
+    context "when base64 decodes to empty data" do
+      it "raises InvalidAudioError" do
         expect {
-          described_class.call(audio_url: audio_url)
-        }.to raise_error(AudioTranscriptionService::TranscriptionError, /Audio download failed: HTTP 404/)
+          described_class.call(base64: Base64.strict_encode64(""))
+        }.to raise_error(AudioTranscriptionService::InvalidAudioError, /empty/)
       end
     end
 
     context "when transcription returns empty text" do
       before do
-        stub_request(:get, audio_url)
-          .to_return(status: 200, body: audio_body)
-
         stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
           .to_return(
             status: 200,
@@ -92,16 +74,13 @@ RSpec.describe AudioTranscriptionService do
 
       it "raises TranscriptionError" do
         expect {
-          described_class.call(audio_url: audio_url)
+          described_class.call(base64: audio_base64)
         }.to raise_error(AudioTranscriptionService::TranscriptionError, /Transcription failed/)
       end
     end
 
     context "with different mimetypes" do
       before do
-        stub_request(:get, audio_url)
-          .to_return(status: 200, body: audio_body)
-
         stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
           .to_return(
             status: 200,
@@ -111,12 +90,12 @@ RSpec.describe AudioTranscriptionService do
       end
 
       it "handles audio/ogg mimetype" do
-        result = described_class.call(audio_url: audio_url, mimetype: "audio/ogg; codecs=opus")
+        result = described_class.call(base64: audio_base64, mimetype: "audio/ogg; codecs=opus")
         expect(result[:text]).to eq("Test")
       end
 
       it "handles audio/mpeg mimetype" do
-        result = described_class.call(audio_url: audio_url, mimetype: "audio/mpeg")
+        result = described_class.call(base64: audio_base64, mimetype: "audio/mpeg")
         expect(result[:text]).to eq("Test")
       end
     end
