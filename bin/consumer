@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+require_relative "../config/environment"
+
+queue_names = ENV.fetch("RABBITMQ_QUEUES").split(",").map(&:strip)
+
+Rails.logger.info("[bin/consumer] Starting consumers for: #{queue_names.join(', ')}")
+
+manager = ConsumerManager.new
+manager.start(queue_names)
