@@ -20,6 +20,7 @@ gem "ruby-openai", "~> 7.0"
 gem "lograge"
 
 group :development, :test do
+  gem "dotenv-rails"
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "rspec-rails", "~> 7.1"
   gem "factory_bot_rails"
