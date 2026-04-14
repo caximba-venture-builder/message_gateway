@@ -27,21 +27,45 @@ class AudioTranscriptionService
 
   private
 
+  MAX_REDIRECTS = 5
+
   def download_audio
     extension = resolve_extension
     tempfile = Tempfile.new([ "whisper_audio", extension ])
     tempfile.binmode
 
-    uri = URI.parse(@audio_url)
-    response = Net::HTTP.get_response(uri)
+    response = fetch_with_redirects(URI.parse(@audio_url))
     raise TranscriptionError, "Audio download failed: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+
+    content_type = response["content-type"].to_s
+    if content_type.include?("text/html") || content_type.include?("application/json")
+      raise InvalidAudioError, "Audio URL returned non-audio content (#{content_type}). URL may have expired or require authentication."
+    end
 
     tempfile.write(response.body)
     tempfile.rewind
 
+    Rails.logger.info("[AudioTranscriptionService] Downloaded #{tempfile.size} bytes (#{content_type}) from #{@audio_url}")
     raise InvalidAudioError, "Downloaded audio file is empty" if tempfile.size.zero?
 
     tempfile
+  end
+
+  def fetch_with_redirects(uri, redirects_remaining = MAX_REDIRECTS)
+    raise TranscriptionError, "Too many redirects downloading audio" if redirects_remaining.zero?
+
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https",
+                                open_timeout: 10, read_timeout: 30) do |http|
+      http.get(uri.request_uri)
+    end
+
+    if response.is_a?(Net::HTTPRedirection)
+      location = URI.parse(response["location"])
+      location = uri + location if location.relative?
+      fetch_with_redirects(location, redirects_remaining - 1)
+    else
+      response
+    end
   end
 
   def transcribe(tempfile)
