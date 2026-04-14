@@ -1,0 +1,18 @@
+x-app: &app-base
+  build: .
+  env_file: .env
+  volumes:
+    - sqlite_data:/rails/storage
+  restart: unless-stopped
+
+services:
+  consumer:
+    <<: *app-base
+    command: ["./bin/consumer"]
+
+  worker:
+    <<: *app-base
+    command: ["bundle", "exec", "rake", "solid_queue:start"]
+
+volumes:
+  sqlite_data:

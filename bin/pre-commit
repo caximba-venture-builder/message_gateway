@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+
+echo "Running pre-commit checks..."
+
+echo "=> RuboCop (staged files only)"
+git diff --cached --name-only --diff-filter=ACM -- '*.rb' | xargs -r bundle exec rubocop --force-exclusion
+
+echo "=> Brakeman"
+bundle exec brakeman --quiet --no-pager --exit-on-warn --exit-on-error
+
+echo "=> Bundler Audit"
+bundle exec bundler-audit check --update
+
+echo "=> RSpec"
+bundle exec rspec
+
+echo "All pre-commit checks passed!"
