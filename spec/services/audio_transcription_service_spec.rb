@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe AudioTranscriptionService do
-  let(:audio_base64) { Base64.strict_encode64("fake ogg audio content") }
+  let(:audio_binary) { "fake ogg audio content".b }
 
   before do
     allow(ENV).to receive(:fetch).and_call_original
@@ -22,18 +22,18 @@ RSpec.describe AudioTranscriptionService do
       end
 
       it "returns the transcribed text" do
-        result = described_class.call(base64: audio_base64)
+        result = described_class.call(binary: audio_binary)
         expect(result[:text]).to eq("Olá, como vai?")
       end
 
       it "estimates token count when not provided by API" do
-        result = described_class.call(base64: audio_base64)
+        result = described_class.call(binary: audio_binary)
         expect(result[:tokens_used]).to be_a(Integer)
         expect(result[:tokens_used]).to be > 0
       end
 
       it "returns the model name" do
-        result = described_class.call(base64: audio_base64)
+        result = described_class.call(binary: audio_binary)
         expect(result[:model]).to eq("whisper-1")
       end
     end
@@ -49,15 +49,15 @@ RSpec.describe AudioTranscriptionService do
       end
 
       it "uses the API-provided token count" do
-        result = described_class.call(base64: audio_base64)
+        result = described_class.call(binary: audio_binary)
         expect(result[:tokens_used]).to eq(42)
       end
     end
 
-    context "when base64 decodes to empty data" do
+    context "when binary is empty" do
       it "raises InvalidAudioError" do
         expect {
-          described_class.call(base64: Base64.strict_encode64(""))
+          described_class.call(binary: "".b)
         }.to raise_error(AudioTranscriptionService::InvalidAudioError, /empty/)
       end
     end
@@ -74,7 +74,7 @@ RSpec.describe AudioTranscriptionService do
 
       it "raises TranscriptionError" do
         expect {
-          described_class.call(base64: audio_base64)
+          described_class.call(binary: audio_binary)
         }.to raise_error(AudioTranscriptionService::TranscriptionError, /Transcription failed/)
       end
     end
@@ -90,12 +90,12 @@ RSpec.describe AudioTranscriptionService do
       end
 
       it "handles audio/ogg mimetype" do
-        result = described_class.call(base64: audio_base64, mimetype: "audio/ogg; codecs=opus")
+        result = described_class.call(binary: audio_binary, mimetype: "audio/ogg; codecs=opus")
         expect(result[:text]).to eq("Test")
       end
 
       it "handles audio/mpeg mimetype" do
-        result = described_class.call(base64: audio_base64, mimetype: "audio/mpeg")
+        result = described_class.call(binary: audio_binary, mimetype: "audio/mpeg")
         expect(result[:text]).to eq("Test")
       end
     end

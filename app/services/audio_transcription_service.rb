@@ -2,12 +2,12 @@ class AudioTranscriptionService
   class TranscriptionError < StandardError; end
   class InvalidAudioError < TranscriptionError; end
 
-  def self.call(base64:, mimetype: "audio/ogg")
-    new(base64: base64, mimetype: mimetype).call
+  def self.call(binary:, mimetype: "audio/ogg")
+    new(binary: binary, mimetype: mimetype).call
   end
 
-  def initialize(base64:, mimetype:)
-    @base64 = base64
+  def initialize(binary:, mimetype:)
+    @binary = binary
     @mimetype = mimetype
   end
 
@@ -28,12 +28,11 @@ class AudioTranscriptionService
   private
 
   def build_tempfile
-    audio_data = Base64.decode64(@base64)
-    raise InvalidAudioError, "Decoded audio data is empty" if audio_data.empty?
+    raise InvalidAudioError, "Audio data is empty" if @binary.empty?
 
     tempfile = Tempfile.new([ "whisper_audio", resolve_extension ])
     tempfile.binmode
-    tempfile.write(audio_data)
+    tempfile.write(@binary)
     tempfile.rewind
     tempfile
   end
