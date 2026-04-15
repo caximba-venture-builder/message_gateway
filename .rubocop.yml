@@ -1,29 +1,10 @@
 # Omakase Ruby styling for Rails
 inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 
-require:
-  - rubocop-rspec
-
 AllCops:
   NewCops: enable
   Exclude:
-    - "bin/**/*"
-    - "db/**/*"
-    - "config/**/*"
-    - "vendor/**/*"
-    - "Gemfile"
-
-RSpec/ExampleLength:
-  Enabled: false
-
-RSpec/MultipleExpectations:
-  Enabled: false
-
-RSpec/NestedGroups:
-  Max: 4
-
-RSpec/MessageSpies:
-  Enabled: false
-
-RSpec/AnyInstance:
-  Enabled: false
+    - "db/schema.rb"
+    - "db/cache_schema.rb"
+    - "db/queue_schema.rb"
+    - "db/cable_schema.rb"
