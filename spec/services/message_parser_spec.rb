@@ -57,9 +57,8 @@ RSpec.describe MessageParser do
 
       it "sets audio fields to nil for conversation type" do
         result = described_class.call(payload)
-        expect(result.audio_url).to be_nil
+        expect(result.media_url).to be_nil
         expect(result.audio_mimetype).to be_nil
-        expect(result.audio_file_length).to be_nil
       end
 
       it "preserves the raw_payload" do
@@ -76,19 +75,14 @@ RSpec.describe MessageParser do
         expect(result.message_type).to eq("audioMessage")
       end
 
-      it "extracts audio_url" do
+      it "extracts media_url" do
         result = described_class.call(payload)
-        expect(result.audio_url).to eq("https://mmg.whatsapp.net/v/t62.7114-24/audio.enc")
+        expect(result.media_url).to eq("https://bucket.example.com/audio/test_audio.oga?X-Amz-Signature=abc123")
       end
 
       it "extracts audio_mimetype" do
         result = described_class.call(payload)
         expect(result.audio_mimetype).to eq("audio/ogg; codecs=opus")
-      end
-
-      it "extracts audio_file_length" do
-        result = described_class.call(payload)
-        expect(result.audio_file_length).to eq(15230)
       end
 
       it "sets message_body to nil for audio type" do

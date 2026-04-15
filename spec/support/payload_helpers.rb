@@ -52,7 +52,8 @@ module PayloadHelpers
             "directPath" => "/v/t62.7114-24/audio.enc",
             "mediaKeyTimestamp" => 1713105200,
             "waveform" => "base64-encoded-waveform-data"
-          }
+          },
+          "mediaUrl" => "https://bucket.example.com/audio/test_audio.oga?X-Amz-Signature=abc123"
         },
         "contextInfo" => {},
         "messageType" => "audioMessage",
