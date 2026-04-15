@@ -17,9 +17,8 @@ RSpec.describe AudioTranscriptionJob, type: :job do
     allow(ENV).to receive(:fetch).and_call_original
     allow(ENV).to receive(:fetch).with("PROCESSED_MESSAGES_QUEUE").and_return("test.processed")
 
-    allow(EvolutionApi::AudioFetcher).to receive(:call).and_return({
-      base64: Base64.strict_encode64("fake audio"),
-      mimetype: "audio/ogg; codecs=opus"
+    allow(AudioDownloader).to receive(:call).and_return({
+      binary: "fake audio binary".b
     })
 
     allow(AudioTranscriptionService).to receive(:call).and_return({
@@ -33,31 +32,25 @@ RSpec.describe AudioTranscriptionJob, type: :job do
     let(:job_args) do
       {
         sender_id: sender.id,
-        instance_name: "materny-bot-ai",
-        server_url: "https://evolution.example.com",
-        api_key: "test-api-key",
-        audio_message: { "audioMessage" => { "url" => "https://mmg.whatsapp.net/audio.enc", "mimetype" => "audio/ogg; codecs=opus" } },
+        media_url: "https://bucket.example.com/audio/test_audio.oga?X-Amz-Signature=abc123",
         audio_mimetype: "audio/ogg; codecs=opus",
         whatsapp_message_id: "3EB0TEST123"
       }
     end
 
-    it "fetches audio from Evolution API" do
+    it "downloads audio from media_url" do
       described_class.new.perform(**job_args)
 
-      expect(EvolutionApi::AudioFetcher).to have_received(:call).with(
-        server_url: "https://evolution.example.com",
-        instance_name: "materny-bot-ai",
-        api_key: "test-api-key",
-        message: job_args[:audio_message]
+      expect(AudioDownloader).to have_received(:call).with(
+        url: "https://bucket.example.com/audio/test_audio.oga?X-Amz-Signature=abc123"
       )
     end
 
-    it "calls AudioTranscriptionService with base64 from fetcher" do
+    it "calls AudioTranscriptionService with downloaded binary" do
       described_class.new.perform(**job_args)
 
       expect(AudioTranscriptionService).to have_received(:call).with(
-        base64: Base64.strict_encode64("fake audio"),
+        binary: "fake audio binary".b,
         mimetype: "audio/ogg; codecs=opus"
       )
     end
