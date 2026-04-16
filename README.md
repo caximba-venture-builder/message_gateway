@@ -77,13 +77,17 @@ The consumer connects to the RabbitMQ instance defined in `RABBITMQ_URL` and sta
 | Variable | Description | Default |
 |---|---|---|
 | `RABBITMQ_URL` | AMQP connection URL | `amqp://guest:guest@localhost:5672` |
-| `RABBITMQ_QUEUES` | Comma-separated queue names to consume | _(required)_ |
+| `RABBITMQ_QUEUES` | Comma-separated incoming queue names to consume | _(required)_ |
 | `PROCESSED_MESSAGES_QUEUE` | Queue name for processed output messages | _(required)_ |
+| `OUTGOING_MESSAGES_QUEUE` | Queue name for LLM replies to deliver via WhatsApp | _(optional)_ |
 | `MESSAGE_CONVERSATION_CONCAT_WINDOW` | Seconds to wait for more messages before flushing | `30` |
 | `MESSAGE_MAX_RETRY_COUNT` | Max retries before sending to DLQ | `3` |
+| `OUTGOING_TYPING_DELAY_MS_PER_CHAR` | Typing delay per character in milliseconds | `35` |
 | `OPENAI_API_KEY` | OpenAI API key for Whisper transcription | _(required)_ |
 | `OPENAI_TRANSCRIPTION_MODEL` | Whisper model name | `whisper-1` |
 | `OPENAI_TRANSCRIPTION_LANGUAGE` | Language hint for transcription | `pt` |
+| `EVOLUTION_API_URL` | Evolution API base URL (outgoing messages) | _(required for outgoing)_ |
+| `EVOLUTION_API_KEY` | Evolution API key (outgoing messages) | _(required for outgoing)_ |
 | `SECRET_KEY_BASE` | Rails secret key | _(required in production)_ |
 
 ## Processed Message Format

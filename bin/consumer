@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
 require_relative "../config/environment"
 
-queue_names = ENV.fetch("RABBITMQ_QUEUES").split(",").map(&:strip)
+incoming_queues = ENV.fetch("RABBITMQ_QUEUES").split(",").map(&:strip)
+outgoing_queue = ENV["OUTGOING_MESSAGES_QUEUE"]
 
-Rails.logger.info("[bin/consumer] Starting consumers for: #{queue_names.join(', ')}")
+Rails.logger.info("[bin/consumer] Starting incoming consumers for: #{incoming_queues.join(', ')}")
+Rails.logger.info("[bin/consumer] Starting outgoing consumer for: #{outgoing_queue}") if outgoing_queue
 
 manager = ConsumerManager.new
-manager.start(queue_names)
+manager.start(incoming_queues: incoming_queues, outgoing_queue: outgoing_queue)

@@ -51,6 +51,8 @@ The message flow is: **RabbitMQ -> Consumer -> Solid Queue Job -> Strategy -> Pu
 - `"conversation"` -> `ConversationStrategy` -> `MessageConcatenationService`: appends text to a `ConcatenationBuffer` with a sliding window timer. Each message resets `expires_at`. A delayed `ConcatenationFlushJob` checks whether the timer truly expired (stale jobs are no-ops).
 - `"audioMessage"` -> `AudioMessageStrategy` -> `AudioTranscriptionJob`: downloads audio, calls OpenAI Whisper, records `TokenUsage`, publishes result.
 
+**Outgoing flow** (LLM reply -> WhatsApp): `OutgoingMessagesConsumer` reads from `OUTGOING_MESSAGES_QUEUE` and enqueues `OutgoingMessageJob`. The job calls `OutgoingMessageSenderService`, which sends a `composing` presence via Evolution API with `delay = OUTGOING_TYPING_DELAY_MS_PER_CHAR * text.length`, sleeps that same delay, then posts the text via Evolution API's Send Text endpoint. Instance name is derived from the queue name prefix (e.g. `materny-bot-ai.messages.outgoing` -> `materny-bot-ai`). `EvolutionApiClient` wraps both HTTP endpoints.
+
 **Publisher layer** (`app/publishers/`): `ProcessedMessagePublisher` sends `{id, phone_number, text, name}` to `PROCESSED_MESSAGES_QUEUE`. `DeadLetterPublisher` sends failed messages with error context to `<queue>.dlq`.
 
 **RabbitMQ connection** (`lib/rabbit_mq/connection.rb`): Thread-safe singleton via Mutex + Bunny with automatic recovery (10 attempts, 5s interval, 30s heartbeat).
@@ -209,13 +211,17 @@ spec/
 | Variable | Description | Default |
 |---|---|---|
 | `RABBITMQ_URL` | AMQP connection URL | `amqp://guest:guest@localhost:5672` |
-| `RABBITMQ_QUEUES` | Comma-separated queue names to consume | _(required)_ |
+| `RABBITMQ_QUEUES` | Comma-separated incoming queue names to consume | _(required)_ |
 | `PROCESSED_MESSAGES_QUEUE` | Queue name for processed output messages | _(required)_ |
+| `OUTGOING_MESSAGES_QUEUE` | Queue name consumed for LLM replies to deliver via WhatsApp | _(optional)_ |
 | `MESSAGE_CONVERSATION_CONCAT_WINDOW` | Seconds to wait before flushing | `30` |
 | `MESSAGE_MAX_RETRY_COUNT` | Max retries before sending to DLQ | `3` |
+| `OUTGOING_TYPING_DELAY_MS_PER_CHAR` | Typing delay per character in ms | `35` |
 | `OPENAI_API_KEY` | OpenAI API key for Whisper transcription | _(required)_ |
 | `OPENAI_TRANSCRIPTION_MODEL` | Whisper model name | `whisper-1` |
 | `OPENAI_TRANSCRIPTION_LANGUAGE` | Language hint for transcription | `pt` |
+| `EVOLUTION_API_URL` | Evolution API base URL (outgoing messages) | _(required for outgoing)_ |
+| `EVOLUTION_API_KEY` | Evolution API key (outgoing messages) | _(required for outgoing)_ |
 | `SECRET_KEY_BASE` | Rails secret key | _(required in production)_ |
 
 ## Pre-Commit Checklist
