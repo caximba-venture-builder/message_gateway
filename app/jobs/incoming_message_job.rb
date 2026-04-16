@@ -15,7 +15,7 @@ class IncomingMessageJob < ApplicationJob
       sender_id: sender.id
     )
 
-    strategy_class = Strategies::MessageStrategyResolver.resolve(parsed.message_type)
+    strategy_class = MessageStrategyResolver.resolve(parsed.message_type)
     strategy_class.new(parsed, sender).call
   end
 end

@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe Strategies::ConversationStrategy do
+RSpec.describe ConversationStrategy do
   let(:sender) { create(:sender) }
   let(:payload) { build_text_message_payload }
   let(:parsed_message) { MessageParser.call(payload) }

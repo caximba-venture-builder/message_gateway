@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe Strategies::AudioMessageStrategy do
+RSpec.describe AudioMessageStrategy do
   let(:sender) { create(:sender) }
   let(:payload) { build_audio_message_payload }
   let(:parsed_message) { MessageParser.call(payload) }

@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe Strategies::BaseStrategy do
+RSpec.describe BaseStrategy do
   let(:parsed_message) { double("ParsedMessage") }
   let(:sender) { double("Sender") }
   let(:strategy) { described_class.new(parsed_message, sender) }
