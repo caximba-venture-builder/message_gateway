@@ -21,14 +21,8 @@ RSpec.describe OutgoingMessageSenderService do
         text: "Olá!"
       )
 
-      expect(client).to have_received(:send_presence).with(
-        number: "5511999999999",
-        delay_ms: 140
-      )
-      expect(client).to have_received(:send_text).with(
-        number: "5511999999999",
-        text: "Olá!"
-      )
+      expect(client).to have_received(:send_presence).with(number: "5511999999999", delay_ms: 140)
+      expect(client).to have_received(:send_text).with(number: "5511999999999", text: "Olá!")
     end
 
     it "sleeps 0.5 seconds between presence and text" do
@@ -53,10 +47,7 @@ RSpec.describe OutgoingMessageSenderService do
         text: "abcde"
       )
 
-      expect(client).to have_received(:send_presence).with(
-        number: "5511999999999",
-        delay_ms: 50
-      )
+      expect(client).to have_received(:send_presence).with(number: "5511999999999", delay_ms: 50)
     end
 
     it "sends presence before sleeping and text after" do
