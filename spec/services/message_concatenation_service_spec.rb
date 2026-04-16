@@ -115,5 +115,55 @@ RSpec.describe MessageConcatenationService do
         expect(ConcatenationBuffer.count).to eq(2)
       end
     end
+
+    context "when an existing buffer has empty accumulated_text" do
+      let!(:buffer) do
+        create(:concatenation_buffer,
+          sender: sender,
+          instance_name: instance_name,
+          accumulated_text: "",
+          message_count: 0,
+          expires_at: 1.minute.from_now
+        )
+      end
+
+      it "appends without a leading newline separator" do
+        described_class.call(sender: sender, instance_name: instance_name, text: "First")
+
+        buffer.reload
+        expect(buffer.accumulated_text).to eq("First")
+      end
+    end
+
+    context "when a race condition causes RecordNotUnique on insert" do
+      it "retries and finds the existing buffer" do
+        service = described_class.new(sender: sender, instance_name: instance_name, text: "Hello")
+
+        existing_buffer = create(:concatenation_buffer,
+          sender: sender,
+          instance_name: instance_name,
+          accumulated_text: "Previous",
+          message_count: 1,
+          expires_at: 5.minutes.from_now
+        )
+
+        call_count = 0
+        allow(ConcatenationBuffer).to receive(:find_or_initialize_by).and_wrap_original do |original, *args|
+          call_count += 1
+          if call_count == 1
+            # First call: return a new_record that raises on save
+            buffer = ConcatenationBuffer.new(**args.first)
+            allow(buffer).to receive(:save!).and_raise(ActiveRecord::RecordNotUnique)
+            buffer
+          else
+            original.call(*args)
+          end
+        end
+
+        expect { service.call }.not_to raise_error
+        existing_buffer.reload
+        expect(existing_buffer.accumulated_text).to include("Hello")
+      end
+    end
   end
 end

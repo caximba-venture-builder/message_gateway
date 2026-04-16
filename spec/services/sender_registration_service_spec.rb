@@ -67,5 +67,16 @@ RSpec.describe SenderRegistrationService do
       expect(sender1.id).not_to eq(sender2.id)
       expect(Sender.count).to eq(2)
     end
+
+    it "recovers from a race condition (RecordNotUnique) by finding the existing sender" do
+      existing = create(:sender, phone_number: "5511999999999", push_name: "Race Winner")
+
+      allow(Sender).to receive(:find_or_create_by!).and_raise(ActiveRecord::RecordNotUnique)
+      allow(Sender).to receive(:find_by!).with(phone_number: "5511999999999").and_return(existing)
+
+      result = described_class.call(phone_number: "5511999999999", push_name: "Race Loser", os: "android")
+
+      expect(result).to eq(existing)
+    end
   end
 end

@@ -98,6 +98,49 @@ RSpec.describe AudioTranscriptionService do
         result = described_class.call(binary: audio_binary, mimetype: "audio/mpeg")
         expect(result[:text]).to eq("Test")
       end
+
+      it "handles audio/mp4 mimetype" do
+        result = described_class.call(binary: audio_binary, mimetype: "audio/mp4")
+        expect(result[:text]).to eq("Test")
+      end
+
+      it "handles audio/wav mimetype" do
+        result = described_class.call(binary: audio_binary, mimetype: "audio/wav")
+        expect(result[:text]).to eq("Test")
+      end
+
+      it "defaults to .ogg extension for unknown mimetypes" do
+        result = described_class.call(binary: audio_binary, mimetype: "audio/unknown")
+        expect(result[:text]).to eq("Test")
+      end
+    end
+
+    context "when OpenAI returns 400 Bad Request with response body" do
+      before do
+        error_response = { status: 400, headers: {}, body: '{"error":{"message":"Invalid file format."}}' }
+        stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
+          .to_raise(Faraday::BadRequestError.new("bad request", error_response))
+      end
+
+      it "raises InvalidAudioError including the body" do
+        expect {
+          described_class.call(binary: audio_binary)
+        }.to raise_error(AudioTranscriptionService::InvalidAudioError, /OpenAI rejected the audio \(400\)/)
+      end
+    end
+
+    context "when OpenAI returns 400 Bad Request without a response object" do
+      before do
+        err = Faraday::BadRequestError.new("bad request")
+        stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
+          .to_raise(err)
+      end
+
+      it "raises InvalidAudioError using the exception message as fallback" do
+        expect {
+          described_class.call(binary: audio_binary)
+        }.to raise_error(AudioTranscriptionService::InvalidAudioError, /OpenAI rejected the audio \(400\)/)
+      end
     end
   end
 end

@@ -77,5 +77,29 @@ RSpec.describe AudioDownloader do
         }.to raise_error(AudioDownloader::DownloadError, /Too many redirects/)
       end
     end
+
+    context "when a network error occurs" do
+      before do
+        stub_request(:get, media_url).to_raise(SocketError.new("connection refused"))
+      end
+
+      it "raises DownloadError with network error message" do
+        expect {
+          described_class.call(url: media_url)
+        }.to raise_error(AudioDownloader::DownloadError, /Audio download error/)
+      end
+    end
+
+    context "when connection times out" do
+      before do
+        stub_request(:get, media_url).to_raise(Net::OpenTimeout)
+      end
+
+      it "raises DownloadError" do
+        expect {
+          described_class.call(url: media_url)
+        }.to raise_error(AudioDownloader::DownloadError, /Audio download error/)
+      end
+    end
   end
 end
