@@ -14,7 +14,7 @@ gem "thruster", require: false
 gem "bunny", "~> 2.23"
 
 # Transcription
-gem "ruby-openai", "~> 7.0"
+gem "ruby-openai", "~> 8.3"
 
 # Logging
 gem "lograge"
