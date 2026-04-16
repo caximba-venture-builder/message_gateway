@@ -39,6 +39,7 @@ class EvolutionApiClient
     request["apikey"] = api_key
     request.body = payload.to_json
 
+    Rails.logger.debug("[EvolutionApiClient] POST #{path} body=#{request.body}")
     response = http.request(request)
 
     Rails.logger.info("[EvolutionApiClient] #{path} -> HTTP #{response.code}")
