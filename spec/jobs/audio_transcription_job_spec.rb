@@ -82,5 +82,25 @@ RSpec.describe AudioTranscriptionJob, type: :job do
         expect(mock_exchange).to have_received(:publish)
       end
     end
+
+    context "when AudioTranscriptionService raises InvalidAudioError" do
+      before do
+        allow(AudioTranscriptionService).to receive(:call)
+          .and_raise(AudioTranscriptionService::InvalidAudioError, "OpenAI rejected the audio (400): bad format")
+        allow(Rails.logger).to receive(:error)
+      end
+
+      it "discards the job without raising" do
+        expect {
+          described_class.perform_now(**job_args)
+        }.not_to raise_error
+      end
+
+      it "logs the discard reason" do
+        described_class.perform_now(**job_args)
+
+        expect(Rails.logger).to have_received(:error).with(/Discarding job.*bad format/)
+      end
+    end
   end
 end

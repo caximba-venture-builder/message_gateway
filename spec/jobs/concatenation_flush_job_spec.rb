@@ -149,5 +149,58 @@ RSpec.describe ConcatenationFlushJob, type: :job do
         )
       }.to have_enqueued_job.on_queue("high_priority")
     end
+
+    context "when buffer is destroyed between find and with_lock (concurrent flush)" do
+      let!(:buffer) do
+        create(:concatenation_buffer,
+          sender: sender,
+          instance_name: "materny-bot-ai",
+          accumulated_text: "Hello",
+          expires_at: 1.minute.ago,
+          message_count: 1
+        )
+      end
+
+      it "silently ignores RecordNotFound from concurrent destruction" do
+        allow_any_instance_of(ConcatenationBuffer).to receive(:with_lock)
+          .and_raise(ActiveRecord::RecordNotFound)
+
+        expect {
+          described_class.new.perform(
+            buffer_id: buffer.id,
+            expected_expires_at: buffer.expires_at.iso8601(6)
+          )
+        }.not_to raise_error
+
+        expect(mock_exchange).not_to have_received(:publish)
+      end
+    end
+
+    context "when buffer expires_at is still in the future inside the lock (concurrent update)" do
+      let!(:buffer) do
+        create(:concatenation_buffer,
+          sender: sender,
+          instance_name: "materny-bot-ai",
+          accumulated_text: "Hello",
+          expires_at: 1.minute.ago,
+          message_count: 1
+        )
+      end
+
+      it "does not publish when expires_at has been pushed forward inside the lock" do
+        # Simulate a concurrent message updating expires_at between the outer check and with_lock
+        allow_any_instance_of(ConcatenationBuffer).to receive(:with_lock) do |buf, &block|
+          buf.expires_at = 5.minutes.from_now
+          block.call
+        end
+
+        described_class.new.perform(
+          buffer_id: buffer.id,
+          expected_expires_at: buffer.expires_at.iso8601(6)
+        )
+
+        expect(mock_exchange).not_to have_received(:publish)
+      end
+    end
   end
 end
