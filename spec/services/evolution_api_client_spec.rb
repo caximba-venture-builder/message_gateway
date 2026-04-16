@@ -19,7 +19,8 @@ RSpec.describe EvolutionApiClient do
           headers: { "Content-Type" => "application/json", "apikey" => "secret-key" },
           body: {
             number: "5511999999999",
-            options: { number: "5511999999999", delay: 1050, presence: "composing" }
+            presence: "composing",
+            delay: 1050
           }.to_json
         )
         .to_return(status: 201, body: "{}")

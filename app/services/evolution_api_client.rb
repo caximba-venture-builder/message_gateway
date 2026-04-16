@@ -11,11 +11,8 @@ class EvolutionApiClient
   def send_presence(number:, delay_ms:, presence: "composing")
     payload = {
       number: number,
-      options: {
-        number: number,
-        delay: delay_ms,
-        presence: presence
-      }
+      presence: presence,
+      delay: delay_ms
     }
 
     post("/chat/sendPresence/#{@instance_name}", payload)
