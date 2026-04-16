@@ -11,10 +11,9 @@ RSpec.describe OutgoingMessageSenderService do
   end
 
   describe ".call" do
-    it "computes delay as 35ms per character by default" do
+    it "computes delay as 35ms per character by default and passes it to send_presence" do
       allow(ENV).to receive(:fetch).with("OUTGOING_TYPING_DELAY_MS_PER_CHAR", 35).and_return(35)
-
-      expect_any_instance_of(described_class).to receive(:sleep).with(be_within(0.001).of(0.14))
+      allow_any_instance_of(described_class).to receive(:sleep)
 
       described_class.call(
         instance_name: "materny-bot-ai",
@@ -28,6 +27,18 @@ RSpec.describe OutgoingMessageSenderService do
       )
       expect(client).to have_received(:send_text).with(
         number: "5511999999999",
+        text: "Olá!"
+      )
+    end
+
+    it "sleeps 0.5 seconds between presence and text" do
+      allow(ENV).to receive(:fetch).with("OUTGOING_TYPING_DELAY_MS_PER_CHAR", 35).and_return(35)
+
+      expect_any_instance_of(described_class).to receive(:sleep).with(0.5)
+
+      described_class.call(
+        instance_name: "materny-bot-ai",
+        phone_number: "5511999999999",
         text: "Olá!"
       )
     end

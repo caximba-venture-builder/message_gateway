@@ -15,7 +15,7 @@ class OutgoingMessageSenderService
     delay_ms = compute_delay_ms(@text)
 
     client.send_presence(number: @phone_number, delay_ms: delay_ms)
-    sleep(delay_ms / 1000.0)
+    sleep(0.5)
     client.send_text(number: @phone_number, text: @text)
   end
 
