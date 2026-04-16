@@ -24,11 +24,11 @@ RSpec.describe OutgoingMessagesConsumer do
       )
     end
 
-    it "raises KeyError when the payload is missing required fields" do
+    it "raises OutgoingMessageParser::ParseError when the payload is missing required fields" do
       bad_body = { "foo" => "bar" }.to_json
       expect {
         consumer.send(:handle_message, bad_body, double(headers: nil))
-      }.to raise_error(KeyError)
+      }.to raise_error(OutgoingMessageParser::ParseError)
     end
   end
 end
