@@ -4,6 +4,31 @@ RSpec.describe ApplicationConsumer do
   let(:queue_name) { "test-bot.messages.upsert" }
   let(:consumer) { described_class.new(queue_name: queue_name) }
 
+  describe "#start" do
+    let(:mock_channel) { instance_double(Bunny::Channel) }
+    let(:mock_queue) { instance_double(Bunny::Queue) }
+    let(:mock_connection) { instance_double(Bunny::Session, create_channel: mock_channel) }
+
+    before do
+      allow(RabbitMq::Connection).to receive(:instance).and_return(mock_connection)
+      allow(mock_channel).to receive(:prefetch)
+      allow(mock_channel).to receive(:queue).and_return(mock_queue)
+      allow(mock_queue).to receive(:subscribe)
+    end
+
+    it "creates a channel and subscribes to the queue" do
+      consumer.start
+
+      expect(mock_channel).to have_received(:prefetch).with(1)
+      expect(mock_channel).to have_received(:queue).with(
+        queue_name,
+        durable: true,
+        arguments: { "x-queue-type" => "quorum" }
+      )
+      expect(mock_queue).to have_received(:subscribe).with(manual_ack: true, block: false)
+    end
+  end
+
   describe "#extract_retry_count" do
     it "returns 0 when no headers" do
       properties = double(headers: nil)

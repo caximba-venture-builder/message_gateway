@@ -51,6 +51,33 @@ RSpec.describe RabbitMq::Connection do
 
       expect(mock_connection).to have_received(:close)
     end
+
+    it "does nothing when never initialized (mutex is nil)" do
+      described_class.instance_variable_set(:@mutex, nil)
+      described_class.instance_variable_set(:@connection, nil)
+
+      expect { described_class.close }.not_to raise_error
+    end
+
+    it "does nothing when connection is nil (already closed or reset)" do
+      mock_connection = instance_double(Bunny::Session, open?: true, start: nil, close: nil, host: "localhost")
+      allow(Bunny).to receive(:new).and_return(mock_connection)
+
+      described_class.instance
+      described_class.close # sets @connection = nil
+
+      # Second close: mutex exists, connection is nil — safe no-op
+      expect { described_class.close }.not_to raise_error
+    end
+
+    it "skips close when connection is not open" do
+      mock_connection = instance_double(Bunny::Session, open?: false, start: nil, host: "localhost")
+      allow(Bunny).to receive(:new).and_return(mock_connection)
+      expect(mock_connection).not_to receive(:close)
+
+      described_class.instance
+      described_class.close
+    end
   end
 
   describe ".reset!" do
@@ -67,6 +94,13 @@ RSpec.describe RabbitMq::Connection do
 
       result = described_class.instance
       expect(result).to eq(new_conn)
+    end
+
+    it "does nothing when never initialized (mutex is nil)" do
+      described_class.instance_variable_set(:@mutex, nil)
+      described_class.instance_variable_set(:@connection, nil)
+
+      expect { described_class.reset! }.not_to raise_error
     end
   end
 end

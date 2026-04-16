@@ -103,6 +103,25 @@ RSpec.describe ApplicationConsumer do
       end
     end
 
+    context "when create_channel raises in republish_with_retry (channel&.close with nil channel)" do
+      let(:properties) { double(headers: { "x-retry-count" => 0 }) }
+
+      before do
+        consumer.handler_behavior = :error
+        allow(RabbitMq::Connection).to receive(:instance).and_return(
+          instance_double(Bunny::Session).tap do |s|
+            allow(s).to receive(:create_channel).and_raise(RuntimeError, "channel open failed")
+          end
+        )
+      end
+
+      it "propagates the error from republish (nil channel is handled by &. in ensure)" do
+        expect {
+          consumer.send(:process_delivery, mock_channel, delivery_info, properties, '{"test": true}')
+        }.to raise_error(RuntimeError, "channel open failed")
+      end
+    end
+
     context "when processing succeeds" do
       let(:properties) { double(headers: nil) }
 
