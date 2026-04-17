@@ -44,5 +44,21 @@ RSpec.describe ProcessedMessagePublisher do
         content_type: "application/json"
       )
     end
+
+    context "when LLM_ENVELOPE_ENABLED is true" do
+      before do
+        allow(ENV).to receive(:fetch).with("LLM_ENVELOPE_ENABLED", "false").and_return("true")
+      end
+
+      it "wraps text in <user_message> and escapes HTML in text and name" do
+        publisher.publish(sender: sender, text: "<script>alert(1)</script>")
+
+        expect(mock_exchange).to have_received(:publish) do |payload_json, _opts|
+          payload = JSON.parse(payload_json, symbolize_names: true)
+          expect(payload[:text]).to eq("<user_message>&lt;script&gt;alert(1)&lt;/script&gt;</user_message>")
+          expect(payload[:name]).to eq("João")
+        end
+      end
+    end
   end
 end
