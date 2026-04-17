@@ -50,6 +50,19 @@ RSpec.describe OutgoingMessageSenderService do
       expect(client).to have_received(:send_presence).with(number: "5511999999999", delay_ms: 50)
     end
 
+    it "caps delay_ms at MAX_DELAY_MS (15_000) for long text" do
+      allow(ENV).to receive(:fetch).with("OUTGOING_TYPING_DELAY_MS_PER_CHAR", 35).and_return(35)
+      allow_any_instance_of(described_class).to receive(:sleep)
+
+      described_class.call(
+        instance_name: "materny-bot-ai",
+        phone_number: "5511999999999",
+        text: "a" * 1000
+      )
+
+      expect(client).to have_received(:send_presence).with(number: "5511999999999", delay_ms: 15_000)
+    end
+
     it "sends presence before sleeping and text after" do
       allow(ENV).to receive(:fetch).with("OUTGOING_TYPING_DELAY_MS_PER_CHAR", 35).and_return(35)
       sequence = []

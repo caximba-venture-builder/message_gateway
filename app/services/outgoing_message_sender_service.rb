@@ -1,5 +1,6 @@
 class OutgoingMessageSenderService
   DEFAULT_DELAY_MS_PER_CHAR = 35
+  MAX_DELAY_MS = 15_000
 
   def self.call(...)
     new(...).call
@@ -27,6 +28,7 @@ class OutgoingMessageSenderService
 
   def compute_delay_ms(text)
     delay_per_char = ENV.fetch("OUTGOING_TYPING_DELAY_MS_PER_CHAR", DEFAULT_DELAY_MS_PER_CHAR).to_i
-    delay_per_char * text.to_s.length
+    raw_delay = delay_per_char * text.to_s.length
+    [ raw_delay, MAX_DELAY_MS ].min
   end
 end

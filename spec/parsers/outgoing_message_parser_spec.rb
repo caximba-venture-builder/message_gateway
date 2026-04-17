@@ -11,19 +11,45 @@ RSpec.describe OutgoingMessageParser do
       end
     end
 
-    context "with phone_number without country code" do
-      let(:body) { { "phone_number" => "41999341900", "text" => "Olá!" }.to_json }
+    context "with phone_number containing a leading +" do
+      let(:body) { { "phone_number" => "+5511999999999", "text" => "Olá!" }.to_json }
 
-      it "raises ParseError" do
-        expect { described_class.call(body) }.to raise_error(OutgoingMessageParser::ParseError, /country code/)
+      it "strips non-digits and returns the sanitized number" do
+        result = described_class.call(body)
+        expect(result[:phone_number]).to eq("5511999999999")
       end
     end
 
-    context "with non-numeric phone_number" do
-      let(:body) { { "phone_number" => "+5511999999999", "text" => "Olá!" }.to_json }
+    context "with phone_number shorter than 10 digits" do
+      let(:body) { { "phone_number" => "12345", "text" => "Olá!" }.to_json }
 
       it "raises ParseError" do
-        expect { described_class.call(body) }.to raise_error(OutgoingMessageParser::ParseError, /country code/)
+        expect { described_class.call(body) }.to raise_error(OutgoingMessageParser::ParseError, /phone_number/)
+      end
+    end
+
+    context "with phone_number longer than 15 digits" do
+      let(:body) { { "phone_number" => "1234567890123456", "text" => "Olá!" }.to_json }
+
+      it "raises ParseError" do
+        expect { described_class.call(body) }.to raise_error(OutgoingMessageParser::ParseError, /phone_number/)
+      end
+    end
+
+    context "with text exceeding 8192 bytes" do
+      let(:body) { { "phone_number" => "5511999999999", "text" => "a" * 8193 }.to_json }
+
+      it "raises ParseError" do
+        expect { described_class.call(body) }.to raise_error(OutgoingMessageParser::ParseError, /text/)
+      end
+    end
+
+    context "with text containing control characters" do
+      let(:body) { { "phone_number" => "5511999999999", "text" => "hi\u0000\u0001there" }.to_json }
+
+      it "strips control characters" do
+        result = described_class.call(body)
+        expect(result[:text]).to eq("hithere")
       end
     end
 
