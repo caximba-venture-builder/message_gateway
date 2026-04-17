@@ -39,7 +39,9 @@ class EvolutionApiClient
     request["apikey"] = api_key
     request.body = payload.to_json
 
-    Rails.logger.debug("[EvolutionApiClient] POST #{path} body=#{request.body}")
+    Rails.logger.debug do
+      "[EvolutionApiClient] POST #{path} number=#{mask_number(payload[:number])} text_bytes=#{payload[:text]&.bytesize}"
+    end
     response = http.request(request)
 
     Rails.logger.info("[EvolutionApiClient] #{path} -> HTTP #{response.code}")
@@ -59,5 +61,12 @@ class EvolutionApiClient
 
   def api_key
     ENV.fetch("EVOLUTION_API_KEY")
+  end
+
+  def mask_number(number)
+    digits = number.to_s
+    return "[blank]" if digits.empty?
+
+    "***#{digits[-4..]}"
   end
 end

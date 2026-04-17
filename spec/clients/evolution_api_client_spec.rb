@@ -73,4 +73,40 @@ RSpec.describe EvolutionApiClient do
       }.to raise_error(EvolutionApiClient::ApiError, /network error/)
     end
   end
+
+  describe "log redaction" do
+    let(:endpoint) { "https://evo.example.com/message/sendText/materny-bot-ai" }
+    let(:log_output) { StringIO.new }
+    let(:logger) { Logger.new(log_output, level: :debug) }
+
+    before do
+      allow(Rails).to receive(:logger).and_return(logger)
+      stub_request(:post, endpoint).to_return(status: 201, body: "{}")
+    end
+
+    it "does not log the full phone number" do
+      client.send_text(number: "5511999999999", text: "secret payload")
+
+      expect(log_output.string).not_to include("5511999999999")
+    end
+
+    it "does not log the message text" do
+      client.send_text(number: "5511999999999", text: "secret payload")
+
+      expect(log_output.string).not_to include("secret payload")
+    end
+
+    it "logs masked phone number and text byte count at debug level" do
+      client.send_text(number: "5511999999999", text: "Olá!")
+
+      expect(log_output.string).to include("number=***9999")
+      expect(log_output.string).to include("text_bytes=5")
+    end
+
+    it "does not log a request body field" do
+      client.send_text(number: "5511999999999", text: "secret")
+
+      expect(log_output.string).not_to match(/body=/)
+    end
+  end
 end
