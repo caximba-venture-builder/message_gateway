@@ -21,6 +21,29 @@ RSpec.describe ConcatenationBuffer, type: :model do
       expect(subject).not_to be_valid
     end
 
+    it "rejects instance_name longer than 64 characters" do
+      subject.instance_name = "a" * 65
+      expect(subject).not_to be_valid
+    end
+
+    it "rejects instance_name with uppercase or path characters" do
+      subject.instance_name = "../evil"
+      expect(subject).not_to be_valid
+      subject.instance_name = "UpperCase"
+      expect(subject).not_to be_valid
+    end
+
+    it "rejects accumulated_text longer than 16_384 bytes (hard cap)" do
+      subject.accumulated_text = "a" * 16_385
+      expect(subject).not_to be_valid
+      expect(subject.errors[:accumulated_text]).to be_present
+    end
+
+    it "rejects message_count greater than 100" do
+      subject.message_count = 101
+      expect(subject).not_to be_valid
+    end
+
     it "enforces unique sender_id + instance_name" do
       existing = create(:concatenation_buffer)
       subject.sender = existing.sender

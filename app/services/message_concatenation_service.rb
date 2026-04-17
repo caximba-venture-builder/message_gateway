@@ -1,5 +1,6 @@
 class MessageConcatenationService
   CONCAT_WINDOW = ENV.fetch("MESSAGE_CONVERSATION_CONCAT_WINDOW", "30").to_i
+  MAX_ACCUMULATED_BYTES = 8192
 
   def self.call(sender:, instance_name:, text:)
     new(sender: sender, instance_name: instance_name, text: text).call
@@ -16,7 +17,16 @@ class MessageConcatenationService
 
     buffer = find_or_initialize_buffer
     append_to_buffer(buffer, new_expiry)
-    schedule_flush(buffer)
+
+    if buffer.accumulated_text.bytesize > MAX_ACCUMULATED_BYTES
+      buffer.update!(expires_at: Time.current)
+      ConcatenationFlushJob.perform_later(
+        buffer_id: buffer.id,
+        expected_expires_at: buffer.expires_at.iso8601(6)
+      )
+    else
+      schedule_flush(buffer)
+    end
   end
 
   private

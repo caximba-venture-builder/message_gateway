@@ -29,6 +29,28 @@ RSpec.describe Sender, type: :model do
       subject.os = nil
       expect(subject).to be_valid
     end
+
+    it "rejects phone_number with non-digit characters" do
+      subject.phone_number = "+5511999999999"
+      expect(subject).not_to be_valid
+      expect(subject.errors[:phone_number]).to include("is invalid")
+    end
+
+    it "rejects phone_number shorter than 10 digits" do
+      subject.phone_number = "123456789"
+      expect(subject).not_to be_valid
+    end
+
+    it "rejects phone_number longer than 15 digits" do
+      subject.phone_number = "1" * 16
+      expect(subject).not_to be_valid
+    end
+
+    it "rejects push_name longer than 100 characters" do
+      subject.push_name = "a" * 101
+      expect(subject).not_to be_valid
+      expect(subject.errors[:push_name]).to include("is too long (maximum is 100 characters)")
+    end
   end
 
   describe "associations" do

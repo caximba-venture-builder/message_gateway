@@ -135,6 +135,28 @@ RSpec.describe MessageConcatenationService do
       end
     end
 
+    context "when accumulated_text exceeds MAX_ACCUMULATED_BYTES" do
+      it "flushes immediately by setting expires_at to now" do
+        create(:concatenation_buffer,
+          sender: sender,
+          instance_name: instance_name,
+          accumulated_text: "a" * 8000,
+          message_count: 1,
+          expires_at: 1.minute.from_now
+        )
+
+        freeze_time do
+          expect {
+            described_class.call(sender: sender, instance_name: instance_name, text: "b" * 500)
+          }.to have_enqueued_job(ConcatenationFlushJob)
+
+          buffer = ConcatenationBuffer.last
+          expect(buffer.expires_at).to eq(Time.current)
+          expect(buffer.accumulated_text.bytesize).to be > MessageConcatenationService::MAX_ACCUMULATED_BYTES
+        end
+      end
+    end
+
     context "when a race condition causes RecordNotUnique on insert" do
       it "retries and finds the existing buffer" do
         service = described_class.new(sender: sender, instance_name: instance_name, text: "Hello")
