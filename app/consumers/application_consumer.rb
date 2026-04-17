@@ -3,7 +3,7 @@ class ApplicationConsumer
 
   def initialize(queue_name:)
     @queue_name = queue_name
-    @instance_name = queue_name.split(".").first
+    @instance_name = InstanceNameValidator.call!(queue_name.split(".").first)
   end
 
   def start

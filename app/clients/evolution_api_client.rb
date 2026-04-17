@@ -5,7 +5,7 @@ class EvolutionApiClient
   READ_TIMEOUT = 30
 
   def initialize(instance_name:)
-    @instance_name = instance_name
+    @instance_name = InstanceNameValidator.call!(instance_name)
   end
 
   def send_presence(number:, delay_ms:, presence: "composing")

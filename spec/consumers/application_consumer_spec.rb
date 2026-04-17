@@ -4,6 +4,20 @@ RSpec.describe ApplicationConsumer do
   let(:queue_name) { "test-bot.messages.upsert" }
   let(:consumer) { described_class.new(queue_name: queue_name) }
 
+  describe ".new" do
+    it "rejects queue names whose prefix fails instance name validation" do
+      expect {
+        described_class.new(queue_name: "../../evil.messages")
+      }.to raise_error(InstanceNameValidator::InvalidInstanceNameError)
+    end
+
+    it "rejects uppercase instance prefixes" do
+      expect {
+        described_class.new(queue_name: "EvilBot.messages")
+      }.to raise_error(InstanceNameValidator::InvalidInstanceNameError)
+    end
+  end
+
   describe "#start" do
     let(:mock_channel) { instance_double(Bunny::Channel) }
     let(:mock_queue) { instance_double(Bunny::Queue) }

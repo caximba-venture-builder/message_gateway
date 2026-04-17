@@ -4,6 +4,14 @@ RSpec.describe EvolutionApiClient do
   let(:instance_name) { "materny-bot-ai" }
   let(:client) { described_class.new(instance_name: instance_name) }
 
+  describe ".new" do
+    it "rejects instance_name with path traversal characters" do
+      expect {
+        described_class.new(instance_name: "../../../etc/passwd")
+      }.to raise_error(InstanceNameValidator::InvalidInstanceNameError)
+    end
+  end
+
   before do
     allow(ENV).to receive(:fetch).and_call_original
     allow(ENV).to receive(:fetch).with("EVOLUTION_API_URL").and_return("https://evo.example.com")

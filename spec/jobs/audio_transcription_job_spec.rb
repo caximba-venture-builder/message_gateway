@@ -46,12 +46,12 @@ RSpec.describe AudioTranscriptionJob, type: :job do
       )
     end
 
-    it "calls AudioTranscriptionService with downloaded binary" do
+    it "calls AudioTranscriptionService with downloaded binary and normalized mimetype" do
       described_class.new.perform(**job_args)
 
       expect(AudioTranscriptionService).to have_received(:call).with(
         binary: "fake audio binary".b,
-        mimetype: "audio/ogg; codecs=opus"
+        mimetype: "audio/ogg"
       )
     end
 
@@ -80,6 +80,25 @@ RSpec.describe AudioTranscriptionJob, type: :job do
         }.not_to change(TokenUsage, :count)
 
         expect(mock_exchange).to have_received(:publish)
+      end
+    end
+
+    context "when audio_mimetype is not in the allowlist" do
+      before { allow(Rails.logger).to receive(:error) }
+
+      it "discards the job without calling downloader or service" do
+        expect {
+          described_class.perform_now(**job_args.merge(audio_mimetype: "application/json"))
+        }.not_to raise_error
+
+        expect(AudioDownloader).not_to have_received(:call)
+        expect(AudioTranscriptionService).not_to have_received(:call)
+      end
+
+      it "logs the discard reason" do
+        described_class.perform_now(**job_args.merge(audio_mimetype: "application/json"))
+
+        expect(Rails.logger).to have_received(:error).with(/invalid audio mimetype/)
       end
     end
 

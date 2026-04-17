@@ -28,5 +28,15 @@ RSpec.describe AudioMessageParser do
       expect(result.sender_phone_number).to eq("5511999999999")
       expect(result.instance_name).to eq("materny-bot-ai")
     end
+
+    it "raises ParseError when phone_number is invalid" do
+      payload[:sender] = "abc@s.whatsapp.net"
+      expect { described_class.call(payload) }.to raise_error(MessageParser::ParseError, /phone_number/)
+    end
+
+    it "sanitizes push_name" do
+      payload[:data][:pushName] = "Name\nwith\r\ncontrol\x01chars"
+      expect(described_class.call(payload).push_name).to eq("Namewithcontrolchars")
+    end
   end
 end
