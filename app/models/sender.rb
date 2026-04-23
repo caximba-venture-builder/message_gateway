@@ -6,4 +6,5 @@ class Sender < ApplicationRecord
   validates :phone_number, presence: true, uniqueness: true,
             format: { with: /\A\d{10,15}\z/ }
   validates :push_name, presence: true, length: { maximum: 100 }
+  validates :os, inclusion: { in: %w[android ios web unknown] }, allow_nil: true
 end
