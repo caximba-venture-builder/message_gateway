@@ -19,6 +19,10 @@ gem "ruby-openai", "~> 8.3"
 # Logging
 gem "lograge"
 
+group :development do
+  gem "kamal", require: false
+end
+
 group :development, :test do
   gem "dotenv-rails"
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
