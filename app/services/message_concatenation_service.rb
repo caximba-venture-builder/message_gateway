@@ -13,55 +13,47 @@ class MessageConcatenationService
   end
 
   def call
-    new_expiry = CONCAT_WINDOW.seconds.from_now
+    buffer = ConcatenationBuffer.find_or_initialize_by(
+      sender: @sender,
+      instance_name: @instance_name
+    )
 
-    buffer = find_or_initialize_buffer
-    append_to_buffer(buffer, new_expiry)
+    expires_at = buffer.new_record? ? save_new_buffer(buffer) : update_existing_buffer(buffer)
 
-    if buffer.accumulated_text.bytesize > MAX_ACCUMULATED_BYTES
-      buffer.update!(expires_at: Time.current)
-      ConcatenationFlushJob.perform_later(
-        buffer_id: buffer.id,
-        expected_expires_at: buffer.expires_at.iso8601(6)
-      )
-    else
-      schedule_flush(buffer)
-    end
+    schedule_flush(buffer, expires_at)
+  rescue ActiveRecord::RecordNotUnique
+    retry
   end
 
   private
 
-  def find_or_initialize_buffer
-    ConcatenationBuffer.find_or_initialize_by(
-      sender: @sender,
-      instance_name: @instance_name
-    )
+  def save_new_buffer(buffer)
+    buffer.accumulated_text = @text
+    buffer.message_count = 1
+    buffer.expires_at = CONCAT_WINDOW.seconds.from_now
+    buffer.save!
+    buffer.expires_at
   end
 
-  def append_to_buffer(buffer, new_expiry)
-    if buffer.new_record?
-      buffer.accumulated_text = @text
-      buffer.message_count = 1
-      buffer.expires_at = new_expiry
+  def update_existing_buffer(buffer)
+    buffer.with_lock do
+      separator = buffer.accumulated_text.present? ? "\n" : ""
+      buffer.accumulated_text = "#{buffer.accumulated_text}#{separator}#{@text}"
+      buffer.message_count += 1
+      buffer.expires_at = overflow?(buffer) ? Time.current : CONCAT_WINDOW.seconds.from_now
       buffer.save!
-    else
-      buffer.with_lock do
-        separator = buffer.accumulated_text.present? ? "\n" : ""
-        buffer.accumulated_text = "#{buffer.accumulated_text}#{separator}#{@text}"
-        buffer.message_count += 1
-        buffer.expires_at = new_expiry
-        buffer.save!
-      end
+      buffer.expires_at
     end
-  rescue ActiveRecord::RecordNotUnique
-    buffer = ConcatenationBuffer.find_by!(sender: @sender, instance_name: @instance_name)
-    retry
   end
 
-  def schedule_flush(buffer)
-    ConcatenationFlushJob.set(wait_until: buffer.expires_at).perform_later(
+  def overflow?(buffer)
+    buffer.accumulated_text.bytesize > MAX_ACCUMULATED_BYTES
+  end
+
+  def schedule_flush(buffer, expires_at)
+    ConcatenationFlushJob.set(wait_until: expires_at).perform_later(
       buffer_id: buffer.id,
-      expected_expires_at: buffer.expires_at.iso8601(6)
+      expected_expires_at: expires_at.iso8601(6)
     )
   end
 end

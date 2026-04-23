@@ -1,26 +1,24 @@
 class ConcatenationFlushJob < ApplicationJob
   queue_as :high_priority
 
+  STALE_JOB_TOLERANCE = 0.1.seconds
+
   def perform(buffer_id:, expected_expires_at:)
     buffer = ConcatenationBuffer.find_by(id: buffer_id)
     return if buffer.nil?
 
     expected_time = Time.parse(expected_expires_at)
 
-    # Only flush if the expiry hasn't been pushed forward by a newer message.
-    # If expires_at moved, a newer flush job is scheduled and this one is stale.
-    return unless buffer.expires_at <= expected_time + 0.1.seconds
+    buffer.with_lock do
+      return if stale?(buffer, expected_time)
 
-    # Safety: don't flush before the window actually expires
-    if buffer.expires_at > Time.current
-      ConcatenationFlushJob.set(wait_until: buffer.expires_at).perform_later(
-        buffer_id: buffer.id,
-        expected_expires_at: buffer.expires_at.iso8601(6)
-      )
-      return
+      if buffer.expires_at > Time.current
+        reschedule(buffer)
+        return
+      end
+
+      flush(buffer)
     end
-
-    flush(buffer)
   rescue ActiveRecord::RecordNotFound
     # Buffer was already flushed and destroyed by a concurrent worker — safe to ignore.
     nil
@@ -28,23 +26,30 @@ class ConcatenationFlushJob < ApplicationJob
 
   private
 
+  def stale?(buffer, expected_time)
+    buffer.expires_at > expected_time + STALE_JOB_TOLERANCE
+  end
+
+  def reschedule(buffer)
+    ConcatenationFlushJob.set(wait_until: buffer.expires_at).perform_later(
+      buffer_id: buffer.id,
+      expected_expires_at: buffer.expires_at.iso8601(6)
+    )
+  end
+
   def flush(buffer)
-    buffer.with_lock do
-      return if buffer.expires_at > Time.current
+    sender = buffer.sender
 
-      sender = buffer.sender
+    ProcessedMessagePublisher.publish(
+      sender: sender,
+      text: buffer.accumulated_text
+    )
 
-      ProcessedMessagePublisher.publish(
-        sender: sender,
-        text: buffer.accumulated_text
-      )
+    Rails.logger.info(
+      "[ConcatenationFlush] Flushed #{buffer.message_count} messages " \
+      "for sender=#{sender.id}, instance=#{buffer.instance_name}"
+    )
 
-      Rails.logger.info(
-        "[ConcatenationFlush] Flushed #{buffer.message_count} messages " \
-        "for sender=#{sender.id}, instance=#{buffer.instance_name}"
-      )
-
-      buffer.destroy!
-    end
+    buffer.destroy!
   end
 end

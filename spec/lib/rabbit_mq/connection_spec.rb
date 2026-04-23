@@ -2,7 +2,8 @@ require "rails_helper"
 
 RSpec.describe RabbitMq::Connection do
   after do
-    described_class.reset!
+    described_class.instance_variable_set(:@connection, nil)
+    described_class.instance_variable_set(:@mutex, Mutex.new)
   end
 
   describe ".instance" do
