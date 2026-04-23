@@ -37,3 +37,6 @@
 
 .claude
 
+# Kamal secrets (never commit)
+/.kamal/secrets
+

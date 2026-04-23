@@ -1,0 +1,63 @@
+service: message-gateway
+image: raphael-nogueira/message-gateway
+
+deploy_timeout: 300
+drain_timeout: 300
+
+servers:
+  consumer:
+    hosts:
+      - materny.cloud
+    cmd: ./bin/consumer
+    proxy: false
+    options:
+      volume:
+        - "message_gateway_storage:/rails/storage"
+  jobs:
+    hosts:
+      - materny.cloud
+    cmd: ./bin/jobs
+    proxy: false
+    options:
+      volume:
+        - "message_gateway_storage:/rails/storage"
+
+primary_role: consumer
+
+ssh:
+  user: deploy
+  keys:
+    - ~/.ssh/id_ed25519
+
+registry:
+  server: ghcr.io
+  username:
+    - KAMAL_REGISTRY_USERNAME
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+  remote: ssh://deploy@materny.cloud
+
+env:
+  clear:
+    RAILS_ENV: production
+    RABBITMQ_QUEUES: "materny-bot-ai.messages.upsert"
+    PROCESSED_MESSAGES_QUEUE: materny-bot-ai.messages.processed
+    OUTGOING_MESSAGES_QUEUE: materny-bot-ai.messages.outgoing
+    MESSAGE_CONVERSATION_CONCAT_WINDOW: "7"
+    MESSAGE_MAX_RETRY_COUNT: "3"
+    OUTGOING_TYPING_DELAY_MS_PER_CHAR: "35"
+    OPENAI_TRANSCRIPTION_MODEL: whisper-1
+    OPENAI_TRANSCRIPTION_LANGUAGE: pt
+    EVOLUTION_API_URL: https://evolution.materny.cloud/
+  secret:
+    - RAILS_MASTER_KEY
+    - SECRET_KEY_BASE
+    - RABBITMQ_URL
+    - OPENAI_API_KEY
+    - EVOLUTION_API_KEY
+
+volumes:
+  - "message_gateway_storage:/rails/storage"
