@@ -5,7 +5,7 @@ RSpec.describe MessageConcatenationService do
   let(:instance_name) { "materny-bot-ai" }
 
   before do
-    stub_const("MessageConcatenationService::CONCAT_WINDOW", 15)
+    stub_const("ConcatenationBufferRepository::CONCAT_WINDOW", 15)
   end
 
   describe ".call" do
