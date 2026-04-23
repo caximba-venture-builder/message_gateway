@@ -11,7 +11,7 @@ gem "bootsnap", require: false
 gem "thruster", require: false
 
 # Messaging
-gem "bunny", "~> 2.23"
+gem "bunny", "~> 3.1"
 
 # Transcription
 gem "ruby-openai", "~> 8.3"
