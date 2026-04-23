@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+require "pathname"
+
+root = Pathname.new(__dir__).join("..").expand_path
+stale_after = Integer(ENV.fetch("HEARTBEAT_STALE_AFTER", "30"))
+
+heartbeat = root.join("tmp/heartbeat/consumer")
+heartbeat = root.join("tmp/heartbeat/jobs") unless heartbeat.exist?
+
+unless heartbeat.exist?
+  warn "heartbeat missing: #{heartbeat}"
+  exit 1
+end
+
+age = Time.now - heartbeat.mtime
+if age > stale_after
+  warn "heartbeat stale: #{age.round}s (threshold #{stale_after}s)"
+  exit 1
+end
+
+puts "ok (#{age.round}s)"

@@ -10,6 +10,11 @@ RSpec.describe ConsumerManager do
     allow(MessagesConsumer).to receive(:new).and_return(mock_messages_consumer)
     allow(OutgoingMessagesConsumer).to receive(:new).and_return(mock_outgoing_consumer)
     allow(RabbitMq::Connection).to receive(:close)
+    FileUtils.rm_f(ConsumerManager::HEARTBEAT_PATH)
+  end
+
+  after do
+    FileUtils.rm_f(ConsumerManager::HEARTBEAT_PATH)
   end
 
   describe "#start" do
@@ -70,6 +75,31 @@ RSpec.describe ConsumerManager do
       manager.stop
 
       expect(RabbitMq::Connection).to have_received(:close)
+    end
+  end
+
+  describe "heartbeat" do
+    it "writes the heartbeat file while running" do
+      heartbeat_exists = false
+      allow(manager).to receive(:sleep) do
+        sleep 0.05
+        heartbeat_exists = File.exist?(ConsumerManager::HEARTBEAT_PATH)
+        manager.stop
+      end
+
+      manager.start(incoming_queues: [ "bot.messages.upsert" ])
+
+      expect(heartbeat_exists).to be true
+    end
+
+    it "removes the heartbeat file on stop" do
+      allow(manager).to receive(:sleep) do
+        sleep 0.05
+        manager.stop
+      end
+      manager.start(incoming_queues: [ "bot.messages.upsert" ])
+
+      expect(File).not_to exist(ConsumerManager::HEARTBEAT_PATH)
     end
   end
 end

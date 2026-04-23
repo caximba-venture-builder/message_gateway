@@ -3,4 +3,19 @@
 require_relative "../config/environment"
 require "solid_queue/cli"
 
+heartbeat_path = Rails.root.join("tmp/heartbeat/jobs")
+FileUtils.mkdir_p(heartbeat_path.dirname)
+
+heartbeat_thread = Thread.new do
+  loop do
+    FileUtils.touch(heartbeat_path)
+    sleep 5
+  end
+end
+
+at_exit do
+  heartbeat_thread.kill
+  FileUtils.rm_f(heartbeat_path)
+end
+
 SolidQueue::Cli.start(ARGV)

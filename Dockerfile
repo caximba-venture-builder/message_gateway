@@ -66,6 +66,8 @@ USER 1000:1000
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
 
+HEALTHCHECK --interval=15s --timeout=10s --retries=3 --start-period=60s CMD ["/rails/bin/health"]
+
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
