@@ -1,8 +1,5 @@
-class EvolutionApiClient
+class EvolutionApiClient < ApplicationHttpClient
   class ApiError < StandardError; end
-
-  OPEN_TIMEOUT = 10
-  READ_TIMEOUT = 30
 
   def initialize(instance_name:)
     @instance_name = InstanceNameValidator.call!(instance_name)
@@ -29,10 +26,7 @@ class EvolutionApiClient
 
   def post(path, payload)
     uri = URI.join(base_url, path)
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme == "https"
-    http.open_timeout = OPEN_TIMEOUT
-    http.read_timeout = READ_TIMEOUT
+    http = build_http(uri)
 
     request = Net::HTTP::Post.new(uri.request_uri)
     request["Content-Type"] = "application/json"
@@ -51,7 +45,7 @@ class EvolutionApiClient
     end
 
     response.body
-  rescue SocketError, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout => e
+  rescue *NETWORK_ERRORS => e
     raise ApiError, "Evolution API network error on #{path}: #{e.message}"
   end
 
