@@ -1,5 +1,5 @@
 class ConcatenationBufferRepository
-  MAX_ACCUMULATED_BYTES = 8192
+  MAX_ACCUMULATED_BYTES = ConcatenationBuffer::SOFT_MAX_BYTES
   CONCAT_WINDOW = ENV.fetch("MESSAGE_CONVERSATION_CONCAT_WINDOW", "30").to_i
 
   def self.append(sender:, instance_name:, text:)

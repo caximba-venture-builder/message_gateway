@@ -1,11 +1,13 @@
 class EvolutionApiClient < ApplicationHttpClient
   class ApiError < StandardError; end
 
+  DEFAULT_PRESENCE = "composing".freeze
+
   def initialize(instance_name:)
     @instance_name = InstanceNameValidator.call!(instance_name)
   end
 
-  def send_presence(number:, delay_ms:, presence: "composing")
+  def send_presence(number:, delay_ms:, presence: DEFAULT_PRESENCE)
     payload = {
       number: number,
       presence: presence,
