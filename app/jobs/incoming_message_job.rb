@@ -1,6 +1,8 @@
 class IncomingMessageJob < ApplicationJob
   queue_as :default
 
+  discard_on MessageParser::ParseError
+
   def perform(payload:, instance_name:)
     parsed = MessageParser.call(payload)
 
