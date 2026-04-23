@@ -16,8 +16,8 @@ class AudioTranscriptionService
     response = transcribe(tempfile)
 
     {
-      text: response.dig("text"),
-      tokens_used: extract_token_count(response),
+      text: response["text"],
+      tokens_used: TranscriptionTokenExtractor.call(response),
       model: transcription_model
     }
   ensure
@@ -28,13 +28,9 @@ class AudioTranscriptionService
   private
 
   def build_tempfile
-    raise InvalidAudioError, "Audio data is empty" if @binary.empty?
-
-    tempfile = Tempfile.new([ "whisper_audio", resolve_extension ])
-    tempfile.binmode
-    tempfile.write(@binary)
-    tempfile.rewind
-    tempfile
+    AudioFileBuilder.call(binary: @binary, mimetype: @mimetype)
+  rescue AudioFileBuilder::EmptyAudioError => e
+    raise InvalidAudioError, e.message
   end
 
   def transcribe(tempfile)
@@ -56,24 +52,5 @@ class AudioTranscriptionService
 
   def transcription_model
     ENV.fetch("OPENAI_TRANSCRIPTION_MODEL", "whisper-1")
-  end
-
-  def resolve_extension
-    base_mime = @mimetype.split(";").first.strip
-    case base_mime
-    when "audio/ogg" then ".ogg"
-    when "audio/mpeg" then ".mp3"
-    when "audio/mp4" then ".m4a"
-    when "audio/wav" then ".wav"
-    else ".ogg"
-    end
-  end
-
-  def extract_token_count(response)
-    response.dig("usage", "total_tokens") || estimate_tokens(response["text"])
-  end
-
-  def estimate_tokens(text)
-    (text.to_s.length / 4.0).ceil
   end
 end
