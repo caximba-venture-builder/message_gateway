@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+require "pathname"
+
+root = Pathname.new(__dir__).join("..").expand_path
+heartbeat = root.join("tmp/heartbeat/consumer")
+
+if heartbeat.exist?
+  stale_after = Integer(ENV.fetch("HEARTBEAT_STALE_AFTER", "30"))
+  age = Time.now - heartbeat.mtime
+  if age > stale_after
+    warn "heartbeat stale: #{age.round}s (threshold #{stale_after}s)"
+    exit 1
+  end
+  puts "ok consumer (#{age.round}s)"
+else
+  require_relative "../config/environment"
+  stale_after = Integer(ENV.fetch("HEARTBEAT_STALE_AFTER", "30")).seconds
+  fresh = SolidQueue::Process.where("last_heartbeat_at > ?", stale_after.ago)
+  if fresh.none?
+    warn "no fresh solid_queue processes (threshold #{stale_after.to_i}s)"
+    exit 1
+  end
+  supervisor = fresh.find_by(kind: "Supervisor")
+  unless supervisor
+    warn "no supervisor with fresh heartbeat"
+    exit 1
+  end
+  puts "ok jobs (#{fresh.count} processes)"
+end

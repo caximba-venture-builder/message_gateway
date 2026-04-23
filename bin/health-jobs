@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+require_relative "../config/environment"
+
+stale_after = Integer(ENV.fetch("HEARTBEAT_STALE_AFTER", "30")).seconds
+fresh = SolidQueue::Process.where("last_heartbeat_at > ?", stale_after.ago)
+
+if fresh.none?
+  warn "no fresh solid_queue processes (threshold #{stale_after.to_i}s)"
+  exit 1
+end
+
+supervisor = fresh.find_by(kind: "Supervisor")
+unless supervisor
+  warn "no supervisor with fresh heartbeat"
+  exit 1
+end
+
+puts "ok (#{fresh.count} processes, supervisor last_heartbeat_at=#{supervisor.last_heartbeat_at.iso8601})"
