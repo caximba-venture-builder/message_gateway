@@ -1,8 +1,9 @@
 module RabbitMq
   class Connection
+    @mutex = Mutex.new
+
     class << self
       def instance
-        @mutex ||= Mutex.new
         @mutex.synchronize do
           if @connection.nil? || !@connection.open?
             @connection = Bunny.new(

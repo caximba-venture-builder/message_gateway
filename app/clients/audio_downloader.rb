@@ -1,4 +1,4 @@
-class AudioDownloader
+class AudioDownloader < ApplicationHttpClient
   class DownloadError < StandardError; end
 
   MAX_REDIRECTS = 3
@@ -23,11 +23,7 @@ class AudioDownloader
 
   def fetch(url)
     uri = URI.parse(url)
-
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme == "https"
-    http.open_timeout = 10
-    http.read_timeout = 30
+    http = build_http(uri)
 
     request = Net::HTTP::Get.new(uri.request_uri)
     response = http.request(request)
@@ -45,7 +41,7 @@ class AudioDownloader
     else
       raise DownloadError, "Audio download failed with HTTP #{response.code}"
     end
-  rescue URI::InvalidURIError, SocketError, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout => e
+  rescue URI::InvalidURIError, *NETWORK_ERRORS => e
     raise DownloadError, "Audio download error: #{e.message}"
   end
 end

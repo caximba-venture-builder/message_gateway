@@ -1,13 +1,5 @@
-class TextMessageParser
+class TextMessageParser < InboundMessageParserBase
   MAX_INBOUND_TEXT_BYTES = 4096
-
-  def self.call(payload)
-    new(payload).call
-  end
-
-  def initialize(payload)
-    @payload = payload
-  end
 
   def call
     ValueObjects::ParsedMessage.new(
@@ -28,18 +20,5 @@ class TextMessageParser
       audio_mimetype: nil,
       raw_payload: @payload
     )
-  end
-
-  private
-
-  def data
-    @payload[:data]
-  end
-
-  def sanitize_phone_number
-    raw = @payload[:sender]&.split("@")&.first
-    PhoneNumberSanitizer.call(raw)
-  rescue PhoneNumberSanitizer::InvalidPhoneNumberError => e
-    raise MessageParser::ParseError, "Invalid sender phone_number: #{e.message}"
   end
 end

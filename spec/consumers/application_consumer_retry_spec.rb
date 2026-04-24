@@ -3,9 +3,6 @@ require "rails_helper"
 RSpec.describe ApplicationConsumer do
   let(:queue_name) { "test-bot.messages.upsert" }
   let(:mock_channel) { instance_double(Bunny::Channel, close: nil) }
-  let(:mock_queue) { instance_double(Bunny::Queue) }
-  let(:mock_dlq_channel) { instance_double(Bunny::Channel, close: nil) }
-  let(:mock_dlq_queue) { instance_double(Bunny::Queue) }
 
   # Create a concrete subclass for testing
   let(:consumer_class) do
@@ -33,14 +30,9 @@ RSpec.describe ApplicationConsumer do
   let(:delivery_info) { double(delivery_tag: "tag-1") }
 
   before do
-    allow(RabbitMq::Connection).to receive(:instance).and_return(
-      instance_double(Bunny::Session, create_channel: mock_channel)
-    )
-    allow(mock_channel).to receive(:queue).and_return(mock_queue)
     allow(mock_channel).to receive(:ack)
-    allow(mock_queue).to receive(:publish)
-
-    # For DLQ publishing
+    allow(mock_channel).to receive(:nack)
+    allow(RetryPublisher).to receive(:publish)
     allow(DeadLetterPublisher).to receive(:publish)
   end
 
@@ -50,17 +42,19 @@ RSpec.describe ApplicationConsumer do
 
       before { consumer.handler_behavior = :error }
 
-      it "acks the original message" do
+      it "republishes with incremented retry count via RetryPublisher" do
         consumer.send(:process_delivery, mock_channel, delivery_info, properties, '{"test": true}')
-        expect(mock_channel).to have_received(:ack).with("tag-1")
+        expect(RetryPublisher).to have_received(:publish).with(
+          queue_name: queue_name,
+          body: '{"test": true}',
+          retry_count: 2
+        )
       end
 
-      it "republishes with incremented retry count" do
+      it "acks only after a successful republish" do
         consumer.send(:process_delivery, mock_channel, delivery_info, properties, '{"test": true}')
-        expect(mock_queue).to have_received(:publish).with(
-          '{"test": true}',
-          hash_including(headers: { "x-retry-count" => 2 })
-        )
+        expect(mock_channel).to have_received(:ack).with("tag-1")
+        expect(mock_channel).not_to have_received(:nack)
       end
     end
 
@@ -80,9 +74,10 @@ RSpec.describe ApplicationConsumer do
         )
       end
 
-      it "acks the original message" do
+      it "acks only after a successful DLQ publish" do
         consumer.send(:process_delivery, mock_channel, delivery_info, properties, '{"test": true}')
         expect(mock_channel).to have_received(:ack).with("tag-1")
+        expect(mock_channel).not_to have_received(:nack)
       end
     end
 
@@ -100,25 +95,66 @@ RSpec.describe ApplicationConsumer do
           retry_count: 0,
           error_message: a_string_matching(/unexpected token/)
         )
+        expect(RetryPublisher).not_to have_received(:publish)
+      end
+
+      it "acks after the DLQ publish succeeds" do
+        consumer.send(:process_delivery, mock_channel, delivery_info, properties, "not valid json")
+        expect(mock_channel).to have_received(:ack).with("tag-1")
       end
     end
 
-    context "when create_channel raises in republish_with_retry (channel&.close with nil channel)" do
+    context "when RetryPublisher fails" do
       let(:properties) { double(headers: { "x-retry-count" => 0 }) }
 
       before do
         consumer.handler_behavior = :error
-        allow(RabbitMq::Connection).to receive(:instance).and_return(
-          instance_double(Bunny::Session).tap do |s|
-            allow(s).to receive(:create_channel).and_raise(RuntimeError, "channel open failed")
-          end
-        )
+        allow(RetryPublisher).to receive(:publish).and_raise(RuntimeError, "channel open failed")
       end
 
-      it "propagates the error from republish (nil channel is handled by &. in ensure)" do
+      it "nacks with requeue so the message is not lost" do
         expect {
           consumer.send(:process_delivery, mock_channel, delivery_info, properties, '{"test": true}')
-        }.to raise_error(RuntimeError, "channel open failed")
+        }.not_to raise_error
+
+        expect(mock_channel).to have_received(:nack).with("tag-1", false, true)
+        expect(mock_channel).not_to have_received(:ack)
+      end
+    end
+
+    context "when DeadLetterPublisher fails on max-retries path" do
+      let(:properties) { double(headers: { "x-retry-count" => 3 }) }
+
+      before do
+        consumer.handler_behavior = :error
+        allow(DeadLetterPublisher).to receive(:publish).and_raise(RuntimeError, "dlq down")
+      end
+
+      it "nacks with requeue so the message is not lost" do
+        expect {
+          consumer.send(:process_delivery, mock_channel, delivery_info, properties, '{"test": true}')
+        }.not_to raise_error
+
+        expect(mock_channel).to have_received(:nack).with("tag-1", false, true)
+        expect(mock_channel).not_to have_received(:ack)
+      end
+    end
+
+    context "when DeadLetterPublisher fails on invalid-JSON path" do
+      let(:properties) { double(headers: nil) }
+
+      before do
+        consumer.handler_behavior = :parse
+        allow(DeadLetterPublisher).to receive(:publish).and_raise(RuntimeError, "dlq down")
+      end
+
+      it "nacks with requeue so the message is not lost" do
+        expect {
+          consumer.send(:process_delivery, mock_channel, delivery_info, properties, "not valid json")
+        }.not_to raise_error
+
+        expect(mock_channel).to have_received(:nack).with("tag-1", false, true)
+        expect(mock_channel).not_to have_received(:ack)
       end
     end
 
@@ -130,9 +166,10 @@ RSpec.describe ApplicationConsumer do
         expect(mock_channel).to have_received(:ack).with("tag-1")
       end
 
-      it "does not publish to DLQ" do
+      it "does not publish to DLQ or retry" do
         consumer.send(:process_delivery, mock_channel, delivery_info, properties, '{"test": true}')
         expect(DeadLetterPublisher).not_to have_received(:publish)
+        expect(RetryPublisher).not_to have_received(:publish)
       end
     end
   end

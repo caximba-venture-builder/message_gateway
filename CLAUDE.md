@@ -47,7 +47,7 @@ The message flow is: **RabbitMQ -> Consumer -> Solid Queue Job -> Strategy -> Pu
 
 **Job orchestration** (`app/jobs/`): `IncomingMessageJob` is the main coordinator -- it parses the payload into a `ParsedMessage` value object (Ruby `Data.define`), registers the sender, enqueues an async audit job, then dispatches to the appropriate strategy.
 
-**Strategy pattern** (`app/services/strategies/`): `MessageStrategyResolver` routes by `message_type`:
+**Strategy pattern** (`app/strategies/`): `MessageStrategyResolver` routes by `message_type`:
 - `"conversation"` -> `ConversationStrategy` -> `MessageConcatenationService`: appends text to a `ConcatenationBuffer` with a sliding window timer. Each message resets `expires_at`. A delayed `ConcatenationFlushJob` checks whether the timer truly expired (stale jobs are no-ops).
 - `"audioMessage"` -> `AudioMessageStrategy` -> `AudioTranscriptionJob`: downloads audio, calls OpenAI Whisper, records `TokenUsage`, publishes result.
 

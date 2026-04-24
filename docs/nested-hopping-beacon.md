@@ -165,13 +165,13 @@ Distribuir em pastas dedicadas ao invés de concentrar tudo em `app/services/`:
 
 ### Strategy Pattern
 
-**`app/services/strategies/base_strategy.rb`** — Interface com `initialize(parsed_message, sender)` e `call`.
+**`app/strategies/base_strategy.rb`** — Interface com `initialize(parsed_message, sender)` e `call`.
 
-**`app/services/strategies/conversation_strategy.rb`** — Delega para `MessageConcatenationService`.
+**`app/strategies/conversation_strategy.rb`** — Delega para `MessageConcatenationService`.
 
-**`app/services/strategies/audio_message_strategy.rb`** — Enfileira `AudioTranscriptionJob`.
+**`app/strategies/audio_message_strategy.rb`** — Enfileira `AudioTranscriptionJob`.
 
-**`app/services/strategies/message_strategy_resolver.rb`** — Hash lookup `{ "conversation" => ConversationStrategy, "audioMessage" => AudioMessageStrategy }`.
+**`app/strategies/message_strategy_resolver.rb`** — Hash lookup `{ "conversation" => ConversationStrategy, "audioMessage" => AudioMessageStrategy }`.
 
 ### Core Services
 
