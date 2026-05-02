@@ -30,7 +30,7 @@ RSpec.describe AudioMessageParser do
     end
 
     it "raises ParseError when phone_number is invalid" do
-      payload[:sender] = "abc@s.whatsapp.net"
+      payload[:data][:key][:remoteJid] = "abc@s.whatsapp.net"
       expect { described_class.call(payload) }.to raise_error(MessageParser::ParseError, /phone_number/)
     end
 

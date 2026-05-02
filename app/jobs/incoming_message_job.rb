@@ -4,6 +4,8 @@ class IncomingMessageJob < ApplicationJob
   discard_on MessageParser::ParseError
 
   def perform(payload:, instance_name:)
+    return if payload.dig("data", "key", "fromMe")
+
     parsed = MessageParser.call(payload)
 
     sender = SenderRegistrationService.call(

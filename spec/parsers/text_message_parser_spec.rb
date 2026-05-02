@@ -29,12 +29,12 @@ RSpec.describe TextMessageParser do
     end
 
     it "normalizes the phone number by stripping non-digits" do
-      payload[:sender] = "+55 (11) 99999-9999@s.whatsapp.net"
+      payload[:data][:key][:remoteJid] = "+55 (11) 99999-9999@s.whatsapp.net"
       expect(described_class.call(payload).sender_phone_number).to eq("5511999999999")
     end
 
     it "raises ParseError when phone_number is invalid" do
-      payload[:sender] = "123@s.whatsapp.net"
+      payload[:data][:key][:remoteJid] = "123@s.whatsapp.net"
       expect { described_class.call(payload) }.to raise_error(MessageParser::ParseError, /phone_number/)
     end
 
