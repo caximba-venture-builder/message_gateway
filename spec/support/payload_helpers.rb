@@ -6,6 +6,7 @@ module PayloadHelpers
       "data" => {
         "key" => {
           "remoteJid" => "5511999999999@s.whatsapp.net",
+          "remoteJidAlt" => "5511999999999@s.whatsapp.net",
           "fromMe" => false,
           "id" => "3EB0A0C1D2E3F4A5B6C7D8"
         },
@@ -34,6 +35,7 @@ module PayloadHelpers
       "data" => {
         "key" => {
           "remoteJid" => "5511999999999@s.whatsapp.net",
+          "remoteJidAlt" => "5511999999999@s.whatsapp.net",
           "fromMe" => false,
           "id" => "3EB0B1C2D3E4F5A6B7C8D9"
         },

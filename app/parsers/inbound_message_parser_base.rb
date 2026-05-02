@@ -18,7 +18,7 @@ class InboundMessageParserBase
   end
 
   def sanitize_phone_number
-    raw = data.dig(:key, :remoteJid)&.split("@")&.first
+    raw = data.dig(:key, :remoteJidAlt)&.split("@")&.first
     PhoneNumberSanitizer.call(raw)
   rescue PhoneNumberSanitizer::InvalidPhoneNumberError => e
     raise MessageParser::ParseError, "Invalid sender phone_number: #{e.message}"

@@ -8,7 +8,7 @@ class AudioMessageParser < InboundMessageParserBase
       sender_phone_number: sanitize_phone_number,
       api_key: @payload[:apikey],
       whatsapp_message_id: data.dig(:key, :id),
-      remote_jid: data.dig(:key, :remoteJid),
+      remote_jid: data.dig(:key, :remoteJidAlt),
       push_name: PushNameSanitizer.call(data[:pushName]),
       message_type: data[:messageType],
       message_timestamp: data[:messageTimestamp].to_i,
