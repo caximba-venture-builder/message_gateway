@@ -1,8 +1,9 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
-fi
+# Prepare all databases (primary, cache, queue, cable) on every boot.
+# db:prepare is idempotent: creates the DB if missing, loads schema if empty,
+# runs pending migrations otherwise. Required because consumer/jobs commands
+# bypass the rails-server-only branch that previously gated this step.
+./bin/rails db:prepare
 
 exec "${@}"
