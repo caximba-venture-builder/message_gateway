@@ -13,7 +13,7 @@ Formato: cada item é uma história ou tarefa com **Problema/Tarefa**, **Critér
 
 ## P0 — Bloqueadores reais (corrigir antes de tráfego sério)
 
-### TASK-001 — Mover envio outgoing para job assíncrono
+### ✅ TASK-001 — Mover envio outgoing para job assíncrono
 **Problema:** `OutgoingMessagesConsumer` chama `OutgoingMessageSenderService.call` direto no callback do Bunny, e o service faz `sleep(typing_delay)` síncrono (`app/services/outgoing_message_sender_service.rb:19`). Com `prefetch(1)`, throughput cai a quase zero.
 
 **Tarefa:** consumer apenas valida payload e enfileira `OutgoingMessageJob` no Solid Queue; `sleep` e chamadas HTTP ficam no job.
