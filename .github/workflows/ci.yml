@@ -77,3 +77,54 @@ jobs:
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test
+
+  deploy:
+    needs: [ scan_ruby, lint, test ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H materny.cloud >> ~/.ssh/known_hosts
+
+      - name: Write Kamal secrets file
+        env:
+          KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+          SECRET_KEY_BASE: ${{ secrets.SECRET_KEY_BASE }}
+          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+        run: |
+          mkdir -p .kamal
+          {
+            printf 'KAMAL_REGISTRY_USERNAME=%s\n' "$KAMAL_REGISTRY_USERNAME"
+            printf 'KAMAL_REGISTRY_PASSWORD=%s\n' "$KAMAL_REGISTRY_PASSWORD"
+            printf 'RAILS_MASTER_KEY=%s\n'        "$RAILS_MASTER_KEY"
+            printf 'SECRET_KEY_BASE=%s\n'         "$SECRET_KEY_BASE"
+            printf 'RABBITMQ_URL=%s\n'            "$RABBITMQ_URL"
+            printf 'OPENAI_API_KEY=%s\n'          "$OPENAI_API_KEY"
+            printf 'EVOLUTION_API_KEY=%s\n'       "$EVOLUTION_API_KEY"
+          } > .kamal/secrets
+          chmod 600 .kamal/secrets
+
+      - name: Kamal deploy
+        run: bundle exec kamal deploy -v
