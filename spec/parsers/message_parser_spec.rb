@@ -61,9 +61,10 @@ RSpec.describe MessageParser do
         expect(result.audio_mimetype).to be_nil
       end
 
-      it "preserves the raw_payload" do
-        result = described_class.call(payload)
-        expect(result.raw_payload).to be_a(Hash)
+      it "does not leak the Evolution apikey when serialized to JSON" do
+        payload_with_secret = build_text_message_payload("apikey" => "super-secret-evolution-key")
+        json = described_class.call(payload_with_secret).to_h.to_json
+        expect(json).not_to include("super-secret-evolution-key")
       end
     end
 

@@ -7,7 +7,7 @@ class MessagesConsumer < ApplicationConsumer
     Rails.logger.info("[MessagesConsumer] Processing message from #{@queue_name}")
 
     IncomingMessageJob.perform_later(
-      payload: payload,
+      payload: payload.except("apikey"),
       instance_name: @instance_name
     )
   end

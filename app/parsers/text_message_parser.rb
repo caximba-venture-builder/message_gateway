@@ -8,7 +8,6 @@ class TextMessageParser < InboundMessageParserBase
       server_url: @payload[:server_url],
       date_time: @payload[:date_time],
       sender_phone_number: sanitize_phone_number,
-      api_key: @payload[:apikey],
       whatsapp_message_id: data.dig(:key, :id),
       remote_jid: data.dig(:key, :remoteJidAlt),
       push_name: PushNameSanitizer.call(data[:pushName]),
@@ -17,8 +16,7 @@ class TextMessageParser < InboundMessageParserBase
       source_os: data[:source],
       message_body: TextSanitizer.call(data.dig(:message, :conversation), max_bytes: MAX_INBOUND_TEXT_BYTES),
       media_url: nil,
-      audio_mimetype: nil,
-      raw_payload: @payload
+      audio_mimetype: nil
     )
   end
 end

@@ -1,11 +1,11 @@
 class MessageAuditService
-  def self.call(parsed_message:, sender:)
+  def self.call(whatsapp_message_id:, message_type:, message_timestamp:, source_os:, sender:)
     Message.create!(
-      whatsapp_message_id: parsed_message.whatsapp_message_id,
-      message_type: parsed_message.message_type,
+      whatsapp_message_id: whatsapp_message_id,
+      message_type: message_type,
       sender: sender,
-      message_timestamp: parsed_message.message_timestamp,
-      sender_os: parsed_message.source_os
+      message_timestamp: message_timestamp,
+      sender_os: source_os
     )
   end
 end

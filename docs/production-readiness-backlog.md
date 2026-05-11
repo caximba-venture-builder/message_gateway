@@ -76,7 +76,7 @@ Formato: cada item é uma história ou tarefa com **Problema/Tarefa**, **Critér
 
 ---
 
-### TASK-006 — Não persistir `apikey`/`raw_payload` sensível em ParsedMessage
+### ✅ TASK-006 — Não persistir `apikey`/`raw_payload` sensível em ParsedMessage
 **Problema:** `ParsedMessage` carrega `raw_payload` inteiro contendo `apikey` da Evolution. Se for serializado em error tracker, vaza credencial.
 
 **Aceite:**
