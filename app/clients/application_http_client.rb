@@ -1,5 +1,5 @@
 class ApplicationHttpClient
-  DEFAULT_OPEN_TIMEOUT = 10
+  DEFAULT_OPEN_TIMEOUT = 5
   DEFAULT_READ_TIMEOUT = 30
   NETWORK_ERRORS = [ SocketError, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout ].freeze
 

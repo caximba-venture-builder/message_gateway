@@ -129,6 +129,19 @@ RSpec.describe AudioTranscriptionService do
       end
     end
 
+    context "when OpenAI request times out" do
+      before do
+        stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
+          .to_raise(Faraday::TimeoutError.new("execution expired"))
+      end
+
+      it "raises TranscriptionError" do
+        expect {
+          described_class.call(binary: audio_binary)
+        }.to raise_error(AudioTranscriptionService::TranscriptionError, /OpenAI request timed out/)
+      end
+    end
+
     context "when OpenAI returns 400 Bad Request without a response object" do
       before do
         err = Faraday::BadRequestError.new("bad request")
