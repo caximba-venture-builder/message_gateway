@@ -1,12 +1,17 @@
 class MessageAuditJob < ApplicationJob
   queue_as :low_priority
 
-  discard_on ActiveRecord::RecordNotFound, MessageParser::ParseError
+  discard_on ActiveRecord::RecordNotFound
 
-  def perform(parsed_message_json:, sender_id:)
-    parsed = MessageParser.call(parsed_message_json)
+  def perform(whatsapp_message_id:, message_type:, message_timestamp:, source_os:, sender_id:)
     sender = Sender.find(sender_id)
 
-    MessageAuditService.call(parsed_message: parsed, sender: sender)
+    MessageAuditService.call(
+      whatsapp_message_id: whatsapp_message_id,
+      message_type: message_type,
+      message_timestamp: message_timestamp,
+      source_os: source_os,
+      sender: sender
+    )
   end
 end

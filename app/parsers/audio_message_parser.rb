@@ -6,7 +6,6 @@ class AudioMessageParser < InboundMessageParserBase
       server_url: @payload[:server_url],
       date_time: @payload[:date_time],
       sender_phone_number: sanitize_phone_number,
-      api_key: @payload[:apikey],
       whatsapp_message_id: data.dig(:key, :id),
       remote_jid: data.dig(:key, :remoteJidAlt),
       push_name: PushNameSanitizer.call(data[:pushName]),
@@ -15,8 +14,7 @@ class AudioMessageParser < InboundMessageParserBase
       source_os: data[:source],
       message_body: nil,
       media_url: data.dig(:message, :mediaUrl),
-      audio_mimetype: data.dig(:message, :audioMessage, :mimetype),
-      raw_payload: @payload
+      audio_mimetype: data.dig(:message, :audioMessage, :mimetype)
     )
   end
 end

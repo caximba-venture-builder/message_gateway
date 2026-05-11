@@ -15,7 +15,10 @@ class IncomingMessageJob < ApplicationJob
     )
 
     MessageAuditJob.perform_later(
-      parsed_message_json: payload,
+      whatsapp_message_id: parsed.whatsapp_message_id,
+      message_type: parsed.message_type,
+      message_timestamp: parsed.message_timestamp,
+      source_os: parsed.source_os,
       sender_id: sender.id
     )
 
