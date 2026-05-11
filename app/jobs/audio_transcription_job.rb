@@ -2,6 +2,15 @@ class AudioTranscriptionJob < ApplicationJob
   queue_as :default
   retry_on AudioTranscriptionService::TranscriptionError, wait: :polynomially_longer, attempts: 3
   retry_on AudioDownloader::DownloadError, wait: :polynomially_longer, attempts: 3
+  discard_on AudioDownloader::OversizeAudioError do |job, error|
+    sender_id = job.arguments.first&.dig(:sender_id)
+    whatsapp_message_id = job.arguments.first&.dig(:whatsapp_message_id)
+    Rails.logger.warn(
+      "[AudioTranscriptionJob] event=audio_oversize sender_id=#{sender_id} " \
+      "whatsapp_message_id=#{whatsapp_message_id} limit=#{AudioTranscriptionService::MAX_AUDIO_BYTES} " \
+      "error=#{error.message}"
+    )
+  end
   discard_on AudioTranscriptionService::InvalidAudioError do |job, error|
     Rails.logger.error("[AudioTranscriptionJob] Discarding job — audio rejected by OpenAI: #{error.message}")
   end

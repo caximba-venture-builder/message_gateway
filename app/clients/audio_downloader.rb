@@ -1,5 +1,6 @@
 class AudioDownloader < ApplicationHttpClient
   class DownloadError < StandardError; end
+  class OversizeAudioError < DownloadError; end
 
   MAX_REDIRECTS = 3
 
@@ -32,7 +33,11 @@ class AudioDownloader < ApplicationHttpClient
 
     case response
     when Net::HTTPSuccess
-      response.body.to_s.force_encoding(Encoding::BINARY)
+      binary = response.body.to_s.force_encoding(Encoding::BINARY)
+      limit = AudioTranscriptionService::MAX_AUDIO_BYTES
+      raise OversizeAudioError, "Audio exceeds #{limit} bytes (#{binary.bytesize})" if binary.bytesize > limit
+
+      binary
     when Net::HTTPRedirection
       @redirects += 1
       raise DownloadError, "Too many redirects for audio download" if @redirects > MAX_REDIRECTS
