@@ -40,7 +40,7 @@ Formato: cada item é uma história ou tarefa com **Problema/Tarefa**, **Critér
 
 ---
 
-### TASK-003 — Guard clauses e error tracking no AudioTranscriptionJob
+### ✅ TASK-003 — Guard clauses e error tracking no AudioTranscriptionJob
 **Problema:** `app/jobs/audio_transcription_job.rb:13,23` — `Sender.find` quebra silenciosamente se sender deletado; `Message.find_by` retorna `nil` e `TokenUsage.create!` posterior viola FK sem log.
 
 **Aceite:**

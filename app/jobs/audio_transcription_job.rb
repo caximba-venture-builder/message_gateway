@@ -8,6 +8,7 @@ class AudioTranscriptionJob < ApplicationJob
   discard_on MimetypeValidator::InvalidMimetypeError do |job, error|
     Rails.logger.error("[AudioTranscriptionJob] Discarding job — invalid audio mimetype: #{error.message}")
   end
+  discard_on ActiveRecord::RecordNotFound
 
   def perform(sender_id:, media_url:, audio_mimetype:, whatsapp_message_id:)
     sender = Sender.find(sender_id)
@@ -21,14 +22,17 @@ class AudioTranscriptionJob < ApplicationJob
     )
 
     message = Message.find_by(whatsapp_message_id: whatsapp_message_id)
-    if message
-      TokenUsage.create!(
-        sender: sender,
-        message: message,
-        tokens_used: result[:tokens_used],
-        transcription_model: result[:model]
-      )
+    if message.nil?
+      Rails.logger.warn("[AudioTranscriptionJob] Message not found sender_id=#{sender_id} whatsapp_message_id=#{whatsapp_message_id}")
+      return
     end
+
+    TokenUsage.create!(
+      sender: sender,
+      message: message,
+      tokens_used: result[:tokens_used],
+      transcription_model: result[:model]
+    )
 
     ProcessedMessagePublisher.publish(
       sender: sender,

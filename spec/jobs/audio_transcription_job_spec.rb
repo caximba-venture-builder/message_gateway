@@ -73,13 +73,33 @@ RSpec.describe AudioTranscriptionJob, type: :job do
       expect(mock_exchange).to have_received(:publish)
     end
 
-    context "when message record does not exist yet" do
-      it "still publishes but does not create token_usage" do
+    context "when message record does not exist" do
+      before { allow(Rails.logger).to receive(:warn) }
+
+      it "does not create token_usage and does not publish" do
         expect {
           described_class.new.perform(**job_args.merge(whatsapp_message_id: "NONEXISTENT"))
         }.not_to change(TokenUsage, :count)
 
-        expect(mock_exchange).to have_received(:publish)
+        expect(mock_exchange).not_to have_received(:publish)
+      end
+
+      it "logs a warning with sender_id and whatsapp_message_id" do
+        described_class.new.perform(**job_args.merge(whatsapp_message_id: "NONEXISTENT"))
+
+        expect(Rails.logger).to have_received(:warn).with(
+          a_string_including("sender_id=#{sender.id}", "whatsapp_message_id=NONEXISTENT")
+        )
+      end
+    end
+
+    context "when sender does not exist" do
+      it "discards the job without raising" do
+        expect {
+          described_class.perform_now(**job_args.merge(sender_id: SecureRandom.uuid))
+        }.not_to raise_error
+
+        expect(AudioDownloader).not_to have_received(:call)
       end
     end
 
