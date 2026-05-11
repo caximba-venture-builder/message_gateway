@@ -6,22 +6,39 @@ class ApplicationConsumer
   def initialize(queue_name:)
     @queue_name = queue_name
     @instance_name = InstanceNameValidator.call!(queue_name.split(".").first)
+    @in_flight_mutex = Mutex.new
+    @in_flight = 0
   end
 
   def start
-    channel = RabbitMq::Connection.instance.create_channel
-    channel.prefetch(1)
+    @channel = RabbitMq::Connection.instance.create_channel
+    @channel.prefetch(1)
 
-    queue = channel.queue(@queue_name, durable: true, arguments: QUEUE_ARGUMENTS)
+    queue = @channel.queue(@queue_name, durable: true, arguments: QUEUE_ARGUMENTS)
 
     Rails.logger.info("[#{self.class.name}] Subscribed to #{@queue_name}")
 
-    queue.subscribe(manual_ack: true, block: false) do |delivery_info, properties, body|
-      process_delivery(channel, delivery_info, properties, body)
+    @bunny_consumer = queue.subscribe(manual_ack: true, block: false) do |delivery_info, properties, body|
+      track_in_flight { process_delivery(@channel, delivery_info, properties, body) }
     end
   end
 
+  def cancel!
+    @bunny_consumer&.cancel
+  end
+
+  def in_flight_count
+    @in_flight_mutex.synchronize { @in_flight }
+  end
+
   private
+
+  def track_in_flight
+    @in_flight_mutex.synchronize { @in_flight += 1 }
+    yield
+  ensure
+    @in_flight_mutex.synchronize { @in_flight -= 1 }
+  end
 
   def process_delivery(channel, delivery_info, properties, body)
     handle_message(body, properties)
