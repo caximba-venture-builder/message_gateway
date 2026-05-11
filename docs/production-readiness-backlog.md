@@ -53,7 +53,7 @@ Formato: cada item é uma história ou tarefa com **Problema/Tarefa**, **Critér
 
 ---
 
-### TASK-004 — Timeouts explícitos em integrações externas
+### ✅ TASK-004 — Timeouts explícitos em integrações externas
 **Problema:** `EvolutionApiClient`, `AudioDownloader` e `OpenAI` sem timeouts explícitos → uma API lenta congestiona o pool de jobs.
 
 **Aceite:**
