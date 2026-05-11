@@ -216,6 +216,7 @@ spec/
 | `OUTGOING_MESSAGES_QUEUE` | Queue name consumed for LLM replies to deliver via WhatsApp | _(optional)_ |
 | `MESSAGE_CONVERSATION_CONCAT_WINDOW` | Seconds to wait before flushing | `30` |
 | `MESSAGE_MAX_RETRY_COUNT` | Max retries before sending to DLQ | `3` |
+| `CONSUMER_SHUTDOWN_TIMEOUT` | Seconds to wait for in-flight messages on SIGTERM/SIGINT | `30` |
 | `OUTGOING_TYPING_DELAY_MS_PER_CHAR` | Typing delay per character in ms | `35` |
 | `OPENAI_API_KEY` | OpenAI API key for Whisper transcription | _(required)_ |
 | `OPENAI_TRANSCRIPTION_MODEL` | Whisper model name | `whisper-1` |

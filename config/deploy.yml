@@ -3,6 +3,7 @@ image: caximba-venture-builder/message-gateway
 
 deploy_timeout: 300
 drain_timeout: 300
+stop_wait_time: 35
 
 servers:
   consumer:
@@ -48,6 +49,7 @@ env:
     OUTGOING_MESSAGES_QUEUE: materny-bot-ai.messages.outgoing
     MESSAGE_CONVERSATION_CONCAT_WINDOW: "7"
     MESSAGE_MAX_RETRY_COUNT: "3"
+    CONSUMER_SHUTDOWN_TIMEOUT: "30"
     OUTGOING_TYPING_DELAY_MS_PER_CHAR: "35"
     OPENAI_TRANSCRIPTION_MODEL: whisper-1
     OPENAI_TRANSCRIPTION_LANGUAGE: pt

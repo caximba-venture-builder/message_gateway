@@ -27,7 +27,7 @@ Formato: cada item é uma história ou tarefa com **Problema/Tarefa**, **Critér
 
 ---
 
-### TASK-002 — Graceful shutdown do ConsumerManager
+### ✅ TASK-002 — Graceful shutdown do ConsumerManager
 **Problema:** `consumer_manager.rb:21,27` usa busy-loop `sleep(1) while @running`, `@heartbeat_thread&.kill` sem `join`, e não aguarda in-flight messages → re-delivery em crash/deploy.
 
 **Aceite:**
