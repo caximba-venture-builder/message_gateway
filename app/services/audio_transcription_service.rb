@@ -48,6 +48,8 @@ class AudioTranscriptionService
   rescue Faraday::BadRequestError => e
     body = e.response&.dig(:body) || e.message
     raise InvalidAudioError, "OpenAI rejected the audio (400): #{body}"
+  rescue Faraday::TimeoutError => e
+    raise TranscriptionError, "OpenAI request timed out: #{e.message}"
   end
 
   def transcription_model
