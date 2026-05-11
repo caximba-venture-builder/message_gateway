@@ -2,6 +2,8 @@ class AudioTranscriptionService
   class TranscriptionError < StandardError; end
   class InvalidAudioError < TranscriptionError; end
 
+  MAX_AUDIO_BYTES = 5.megabytes
+
   def self.call(binary:, mimetype: "audio/ogg")
     new(binary: binary, mimetype: mimetype).call
   end

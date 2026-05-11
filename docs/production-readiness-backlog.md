@@ -65,7 +65,7 @@ Formato: cada item é uma história ou tarefa com **Problema/Tarefa**, **Critér
 
 ---
 
-### TASK-005 — Limite de tamanho do áudio antes do upload
+### ✅ TASK-005 — Limite de tamanho do áudio antes do upload
 **Problema:** `AudioTranscriptionService` faz upload sem checar tamanho do arquivo (risco de OOM/timeout/custo).
 
 **Aceite:**

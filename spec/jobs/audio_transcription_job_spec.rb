@@ -122,6 +122,35 @@ RSpec.describe AudioTranscriptionJob, type: :job do
       end
     end
 
+    context "when AudioDownloader raises OversizeAudioError" do
+      before do
+        allow(AudioDownloader).to receive(:call)
+          .and_raise(AudioDownloader::OversizeAudioError, "Audio exceeds 5242880 bytes (6000000)")
+        allow(Rails.logger).to receive(:warn)
+      end
+
+      it "discards the job without raising" do
+        expect {
+          described_class.perform_now(**job_args)
+        }.not_to raise_error
+      end
+
+      it "does not call the transcription service or publish" do
+        described_class.perform_now(**job_args)
+
+        expect(AudioTranscriptionService).not_to have_received(:call)
+        expect(mock_exchange).not_to have_received(:publish)
+      end
+
+      it "logs a structured oversize warning" do
+        described_class.perform_now(**job_args)
+
+        expect(Rails.logger).to have_received(:warn).with(
+          a_string_including("event=audio_oversize", "sender_id=#{sender.id}", "whatsapp_message_id=3EB0TEST123")
+        )
+      end
+    end
+
     context "when AudioTranscriptionService raises InvalidAudioError" do
       before do
         allow(AudioTranscriptionService).to receive(:call)

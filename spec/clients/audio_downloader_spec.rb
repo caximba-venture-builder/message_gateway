@@ -90,6 +90,19 @@ RSpec.describe AudioDownloader do
       end
     end
 
+    context "when audio exceeds the size limit" do
+      before do
+        oversize_body = "x" * (AudioTranscriptionService::MAX_AUDIO_BYTES + 1)
+        stub_request(:get, media_url).to_return(status: 200, body: oversize_body)
+      end
+
+      it "raises OversizeAudioError" do
+        expect {
+          described_class.call(url: media_url)
+        }.to raise_error(AudioDownloader::OversizeAudioError, /exceeds/)
+      end
+    end
+
     context "when connection times out" do
       before do
         stub_request(:get, media_url).to_raise(Net::OpenTimeout)
