@@ -3,7 +3,6 @@ image: caximba-venture-builder/message-gateway
 
 deploy_timeout: 300
 drain_timeout: 300
-stop_wait_time: 35
 
 servers:
   consumer:
@@ -12,6 +11,7 @@ servers:
     cmd: ./bin/consumer
     proxy: false
     options:
+      stop-timeout: 35
       volume:
         - "message_gateway_storage:/rails/storage"
   jobs:
