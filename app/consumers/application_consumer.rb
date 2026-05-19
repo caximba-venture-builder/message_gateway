@@ -14,7 +14,7 @@ class ApplicationConsumer
     @channel = RabbitMq::Connection.instance.create_channel
     @channel.prefetch(1)
 
-    queue = @channel.queue(@queue_name, durable: true, arguments: QUEUE_ARGUMENTS)
+    queue = @channel.queue(@queue_name, durable: true, arguments: queue_arguments)
 
     Rails.logger.info("[#{self.class.name}] Subscribed to #{@queue_name}")
 
@@ -32,6 +32,10 @@ class ApplicationConsumer
   end
 
   private
+
+  def queue_arguments
+    QUEUE_ARGUMENTS
+  end
 
   def track_in_flight
     @in_flight_mutex.synchronize { @in_flight += 1 }

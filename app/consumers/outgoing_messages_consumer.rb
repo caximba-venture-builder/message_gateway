@@ -1,5 +1,11 @@
 class OutgoingMessagesConsumer < ApplicationConsumer
+  QUEUE_ARGUMENTS = ApplicationConsumer::QUEUE_ARGUMENTS.merge("x-dead-letter-exchange" => "dlx").freeze
+
   private
+
+  def queue_arguments
+    QUEUE_ARGUMENTS
+  end
 
   def handle_message(body, _properties)
     parsed = OutgoingMessageParser.call(body)
