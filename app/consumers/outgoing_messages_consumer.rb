@@ -1,10 +1,15 @@
 class OutgoingMessagesConsumer < ApplicationConsumer
-  QUEUE_ARGUMENTS = ApplicationConsumer::QUEUE_ARGUMENTS.merge("x-dead-letter-exchange" => "dlx").freeze
+  DLX_EXCHANGE = "dlx".freeze
+  DELIVERY_LIMIT = 3
 
   private
 
   def queue_arguments
-    QUEUE_ARGUMENTS
+    ApplicationConsumer::QUEUE_ARGUMENTS.merge(
+      "x-dead-letter-exchange" => DLX_EXCHANGE,
+      "x-dead-letter-routing-key" => @queue_name,
+      "x-delivery-limit" => DELIVERY_LIMIT
+    )
   end
 
   def handle_message(body, _properties)
